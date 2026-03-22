@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 const STORAGE_KEY = "clink-lego-sets";
 const CHECKS_KEY = "clink-price-checks";
 const TG_KEY = "clink-tg-config";
+const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
+const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
 
 const DEFAULT_SETS = [
   { id: 1, name: "LEGO Technic Bugatti Chiron", sku: "42083", minDiscount: 30, asin: "B07BM5D3VG", img: "" },
@@ -53,29 +55,20 @@ function buildCaption(set, d) {
   return { text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900), url };
 }
 
-const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
-
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
   const reply_markup = { inline_keyboard: [[{ text: "Ver en Amazon", url }]] };
-
   const res = await fetch(WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      botToken, chatId,
-      text: img ? text : text + "\n" + url,
-      photo: img || null,
-      reply_markup
-    })
+    body: JSON.stringify({ botToken, chatId, text: img ? text : text + "\n" + url, photo: img || null, reply_markup })
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.description || "Error Telegram");
   return json;
 }
 
-// ── Telegram Config ──
 function TelegramConfig({ config, onSave, onClose }) {
   const [token, setToken] = useState(config.botToken || "");
   const [chatId, setChatId] = useState(config.chatId || "");
@@ -118,7 +111,6 @@ function TelegramConfig({ config, onSave, onClose }) {
   );
 }
 
-// ── Preview Modal ──
 function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
@@ -145,7 +137,6 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   );
 }
 
-// ── Set Card ──
 function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPrice, loadingId, tgSt }) {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ ...set });
@@ -216,11 +207,8 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   return (
     <div style={{ background: hasAlert ? "rgba(255,59,59,0.06)" : "#111", border: `1px solid ${hasAlert ? "#ff3b3b55" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
-      {/* Imagen si existe */}
       {set.img && <img src={set.img} alt={set.name} style={{ width: "100%", maxHeight: 140, objectFit: "cover", display: "block" }} onError={e => e.target.style.display = "none"} />}
-
       <div style={{ padding: 16 }}>
-        {/* Top row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #ff3b3b" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
@@ -243,8 +231,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               style={{ background: "#2a1010", color: "#cc4444", border: "1px solid #441a1a", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
         </div>
-
-        {/* Price row */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid #1e1e1e" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 2 }}>PRECIO HOY</div>
@@ -267,8 +253,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               : d?.found && discount != null ? <span style={{ color: "#555", fontSize: 11 }}>min {set.minDiscount}%</span> : null}
           </div>
         </div>
-
-        {/* Manual price */}
         <div style={{ marginTop: 10 }}>
           <button onClick={() => setShowManual(!showManual)}
             style={{ background: "transparent", color: "#444", border: "none", fontSize: 11, cursor: "pointer", fontFamily: "monospace", padding: 0 }}>
@@ -289,7 +273,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             </div>
           )}
         </div>
-
         {d?.url && (
           <a href={d.url} target="_blank" rel="noopener noreferrer"
             style={{ display: "block", marginTop: 8, fontSize: 11, color: "#f0a500", textDecoration: "none", opacity: 0.7 }}>
@@ -301,7 +284,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   );
 }
 
-// ── Main ──
 export default function LEGOTracker() {
   const [sets, setSets] = useState([]);
   const [priceData, setPriceData] = useState({});
@@ -334,7 +316,7 @@ export default function LEGOTracker() {
   const checkPrice = useCallback(async (set) => {
     setLoadingId(set.id);
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch(ANTHROPIC_WORKER, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -422,8 +404,6 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
       `}</style>
-
-      {/* Header */}
       <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1e1e1e", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
@@ -449,10 +429,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
             ✈ ENVIAR {alertCount} ALERTA{alertCount > 1 ? "S" : ""} A CLINK</button>
         )}
       </div>
-
       {showTgConfig && <TelegramConfig config={tgConfig} onSave={saveTgConfig} onClose={() => setShowTgConfig(false)} />}
-
-      {/* Add Set */}
       {showAdd && (
         <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16 }}>
           <div style={{ fontSize: 11, color: "#f0a500", letterSpacing: 2, marginBottom: 12 }}>NUEVO SET</div>
@@ -492,8 +469,6 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
           </div>
         </div>
       )}
-
-      {/* Stats */}
       <div style={{ padding: "12px 16px", display: "flex", borderBottom: "1px solid #141414", background: "#080808" }}>
         {[
           { label: "SETS", val: sets.length },
@@ -507,40 +482,24 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
           </div>
         ))}
       </div>
-
-      {/* Cards */}
       <div style={{ padding: 16 }}>
         {sets.map(set => (
           <SetCard
-            key={set.id}
-            set={set}
-            d={priceData[set.id]}
-            status={getStatus(set)}
-            loadingId={loadingId}
-            tgSt={tgStatus[set.id]}
-            onCheck={() => checkPrice(set)}
-            onSend={() => setPreview({ set, d: priceData[set.id] })}
-            onRemove={() => removeSet(set.id)}
-            onEdit={editSet}
+            key={set.id} set={set} d={priceData[set.id]} status={getStatus(set)}
+            loadingId={loadingId} tgSt={tgStatus[set.id]}
+            onCheck={() => checkPrice(set)} onSend={() => setPreview({ set, d: priceData[set.id] })}
+            onRemove={() => removeSet(set.id)} onEdit={editSet}
             onManualPrice={(priceObj) => setManualPrice(set.id, priceObj)}
           />
         ))}
-        {sets.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>
-        )}
+        {sets.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>}
       </div>
-
       <div style={{ padding: "12px 16px", borderTop: "1px solid #111" }}>
         <div style={{ fontSize: 9, color: "#333", letterSpacing: 1 }}>CLINK @CLINK_MX · Amazon.com.mx · Los precios pueden variar</div>
       </div>
-
       {preview && (
-        <PreviewModal
-          set={preview.set} d={preview.d}
-          sending={sending} sent={tgStatus[preview.set.id] === "sent"}
-          onClose={() => setPreview(null)}
-          onSend={() => handleSend(preview.set, preview.d)}
-        />
+        <PreviewModal set={preview.set} d={preview.d} sending={sending} sent={tgStatus[preview.set.id] === "sent"}
+          onClose={() => setPreview(null)} onSend={() => handleSend(preview.set, preview.d)} />
       )}
     </div>
   );
