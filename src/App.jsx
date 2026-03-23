@@ -78,14 +78,12 @@ function getDiscount(d) {
 function isAlert(set, d) {
   if (!d?.found || !d.price) return false;
   const price = d.price;
-  // Si tiene datos de 90 días, usar esos como referencia
   if (set.avg90 || set.min90) {
-    const isNewLow = set.min90 ? price < set.min90 : false;
-    const diffVsAvg = set.avg90 ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
-    return isNewLow || (diffVsAvg != null && diffVsAvg >= 12);
+    const isNewLow = set.min90 ? price <= set.min90 : false;
+    const isBelowAvg = set.avg90 ? price < set.avg90 : false;
+    return isNewLow || isBelowAvg;
   }
-  // Fallback: usar descuento de Amazon si no hay datos 90d
-  // Solo disparar si el descuento es real (precio actual menor al original)
+  // Fallback sin datos 90d: usar descuento de Amazon
   const disc = getDiscount(d);
   const originalPrice = set.originalPrice || d.originalPrice;
   if (originalPrice && price >= originalPrice) return false;
@@ -96,13 +94,15 @@ function buildCaption(set, d) {
   const price = d.price;
   const pct = getDiscount(d);
   const url = d.url || canonicalUrl(set.asin) || "";
-  const line2 = [fmtPrice(price), pct != null ? `${discountBadge(pct)} -${pct}%` : null].filter(Boolean).join(" · ");
+  const line2 = [fmtPrice(price), pct != null && pct > 0 ? `${discountBadge(pct)} -${pct}%` : null].filter(Boolean).join(" · ");
   const diffVsAvg = (set.avg90 && price) ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
-  const isNewLow = set.min90 && price ? Math.abs(price - set.min90) <= 1 : false;
+  const isNewLow = set.min90 && price ? price <= set.min90 : false;
+  const isCaidaFuerte = diffVsAvg != null && diffVsAvg >= (set.minDiscount || 3);
+  const isBuenPrecio = set.avg90 && price < set.avg90;
   let tag = "";
   if (isNewLow) tag = "🔥 NUEVO MÍNIMO 90D";
-  else if (diffVsAvg != null && diffVsAvg >= 20) tag = "💥 CAÍDA FUERTE";
-  else if (diffVsAvg != null && diffVsAvg >= 12) tag = "✅ BUEN PRECIO";
+  else if (isCaidaFuerte) tag = "💥 CAÍDA FUERTE";
+  else if (isBuenPrecio) tag = "✅ BUEN PRECIO";
   const extras = [
     tag || null,
     set.avg90 ? `📊 Prom 90d: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
@@ -226,7 +226,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>SKU</div>
               <input value={editData.sku} onChange={e => setEditData({ ...editData, sku: e.target.value })} style={inp} /></div>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>DCTO MÍN %</div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>% CAÍDA FUERTE</div>
               <input value={editData.minDiscount} onChange={e => setEditData({ ...editData, minDiscount: e.target.value })} type="number" style={inp} /></div>
           </div>
           <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>ASIN</div>
@@ -263,7 +263,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #2ecc71" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#e0e0e0", lineHeight: 1.3 }}>{set.name}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>#{set.sku} · ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span></div>
+              <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>#{set.sku} · caída fuerte ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span></div>
               {d?.error && <div style={{ fontSize: 11, color: "#ff5555", marginTop: 2 }}>⚠ Error al buscar precio</div>}
             </div>
           </div>
@@ -529,7 +529,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>SKU *</div>
                 <input value={newSet.sku} onChange={e => setNewSet({ ...newSet, sku: e.target.value })} placeholder="10276" style={inp} /></div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>DCTO MÍN %</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>% CAÍDA FUERTE</div>
                 <input value={newSet.minDiscount} onChange={e => setNewSet({ ...newSet, minDiscount: e.target.value })} placeholder="30" type="number" style={inp} /></div>
             </div>
             <div><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>ASIN</div>
