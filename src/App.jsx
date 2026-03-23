@@ -3,8 +3,6 @@ import { useState, useEffect, useCallback } from "react";
 const STORAGE_KEY = "clink-lego-sets";
 const CHECKS_KEY = "clink-price-checks";
 const TG_KEY = "clink-tg-config";
-const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
-const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
 
 const DEFAULT_SETS = [
   { id: 1, name: "LEGO Technic Bugatti Chiron", sku: "42083", minDiscount: 30, asin: "B07BM5D3VG", img: "" },
@@ -55,20 +53,30 @@ function buildCaption(set, d) {
   return { text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900), url };
 }
 
+const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
+const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
+
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
   const reply_markup = { inline_keyboard: [[{ text: "Ver en Amazon", url }]] };
+
   const res = await fetch(WORKER_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ botToken, chatId, text: img ? text : text + "\n" + url, photo: img || null, reply_markup })
+    body: JSON.stringify({
+      botToken, chatId,
+      text: img ? text : text + "\n" + url,
+      photo: img || null,
+      reply_markup
+    })
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.description || "Error Telegram");
   return json;
 }
 
+// ── Telegram Config ──
 function TelegramConfig({ config, onSave, onClose }) {
   const [token, setToken] = useState(config.botToken || "");
   const [chatId, setChatId] = useState(config.chatId || "");
@@ -111,6 +119,7 @@ function TelegramConfig({ config, onSave, onClose }) {
   );
 }
 
+// ── Preview Modal ──
 function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
@@ -137,6 +146,7 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   );
 }
 
+// ── Set Card ──
 function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPrice, loadingId, tgSt }) {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ ...set });
@@ -207,8 +217,11 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   return (
     <div style={{ background: hasAlert ? "rgba(255,59,59,0.06)" : "#111", border: `1px solid ${hasAlert ? "#ff3b3b55" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+      {/* Imagen si existe */}
       {set.img && <img src={set.img} alt={set.name} style={{ width: "100%", maxHeight: 140, objectFit: "cover", display: "block" }} onError={e => e.target.style.display = "none"} />}
+
       <div style={{ padding: 16 }}>
+        {/* Top row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #ff3b3b" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
@@ -231,6 +244,8 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               style={{ background: "#2a1010", color: "#cc4444", border: "1px solid #441a1a", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
         </div>
+
+        {/* Price row */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid #1e1e1e" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 2 }}>PRECIO HOY</div>
@@ -253,6 +268,8 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               : d?.found && discount != null ? <span style={{ color: "#555", fontSize: 11 }}>min {set.minDiscount}%</span> : null}
           </div>
         </div>
+
+        {/* Manual price */}
         <div style={{ marginTop: 10 }}>
           <button onClick={() => setShowManual(!showManual)}
             style={{ background: "transparent", color: "#444", border: "none", fontSize: 11, cursor: "pointer", fontFamily: "monospace", padding: 0 }}>
@@ -273,6 +290,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             </div>
           )}
         </div>
+
         {d?.url && (
           <a href={d.url} target="_blank" rel="noopener noreferrer"
             style={{ display: "block", marginTop: 8, fontSize: 11, color: "#f0a500", textDecoration: "none", opacity: 0.7 }}>
@@ -284,6 +302,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   );
 }
 
+// ── Main ──
 export default function LEGOTracker() {
   const [sets, setSets] = useState([]);
   const [priceData, setPriceData] = useState({});
@@ -398,38 +417,52 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
   const inp = { width: "100%", background: "#1a1a1a", border: "1px solid #333", color: "#e0e0e0", padding: "10px 12px", borderRadius: 6, fontFamily: "monospace", fontSize: 13, outline: "none" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "'Courier New', monospace", color: "#e0e0e0", maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", fontFamily: "'Courier New', monospace", color: "#e0e0e0" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+        .cards-grid { display: grid; grid-template-columns: 1fr; gap: 0; padding: 16px; }
+        @media (min-width: 768px) { .cards-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 24px; } }
+        @media (min-width: 1200px) { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
+        .header-inner { max-width: 1400px; margin: 0 auto; }
+        .stats-inner { max-width: 1400px; margin: 0 auto; display: flex; }
+        .cards-inner { max-width: 1400px; margin: 0 auto; }
+        .footer-inner { max-width: 1400px; margin: 0 auto; }
       `}</style>
-      <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1e1e1e", padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div>
-            <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 5, color: "#f0a500", lineHeight: 1 }}>CLINK</div>
-            <div style={{ fontSize: 9, color: "#555", letterSpacing: 3 }}>LEGO PRICE TRACKER · MX</div>
+
+      {/* Header */}
+      <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1e1e1e", padding: "14px 24px" }}>
+        <div className="header-inner">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 5, color: "#f0a500", lineHeight: 1 }}>CLINK</div>
+              <div style={{ fontSize: 9, color: "#555", letterSpacing: 3 }}>LEGO PRICE TRACKER · MX</div>
+            </div>
+            {lastCheck && <div style={{ fontSize: 10, color: "#555" }}>{lastCheck}</div>}
           </div>
-          {lastCheck && <div style={{ fontSize: 10, color: "#555" }}>{lastCheck}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => { setShowTgConfig(!showTgConfig); setShowAdd(false); }}
+              style={{ flex: 1, background: tgReady ? "#0a1e2e" : "#1a1a1a", color: tgReady ? "#2AABEE" : "#888", border: `1px solid ${tgReady ? "#1a3a52" : "#333"}`, padding: "10px 8px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
+              {tgReady ? "✈ TG ✓" : "✈ TELEGRAM"}</button>
+            <button onClick={() => { setShowAdd(!showAdd); setShowTgConfig(false); }}
+              style={{ flex: 1, background: "#1a1a1a", color: "#ccc", border: "1px solid #333", padding: "10px 8px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
+              {showAdd ? "✕ CANCELAR" : "+ SET"}</button>
+            <button onClick={checkAll} disabled={globalLoading}
+              style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: "10px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: globalLoading ? 0.5 : 1 }}>
+              {globalLoading ? "BUSCANDO..." : "▶ REVISAR TODOS"}</button>
+          </div>
+          {alertCount > 0 && tgReady && (
+            <button onClick={sendAllAlerts}
+              style={{ width: "100%", marginTop: 8, background: "#0d1f2e", color: "#2AABEE", border: "1px solid #1a3a52", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
+              ✈ ENVIAR {alertCount} ALERTA{alertCount > 1 ? "S" : ""} A CLINK</button>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => { setShowTgConfig(!showTgConfig); setShowAdd(false); }}
-            style={{ flex: 1, background: tgReady ? "#0a1e2e" : "#1a1a1a", color: tgReady ? "#2AABEE" : "#888", border: `1px solid ${tgReady ? "#1a3a52" : "#333"}`, padding: "10px 8px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
-            {tgReady ? "✈ TG ✓" : "✈ TELEGRAM"}</button>
-          <button onClick={() => { setShowAdd(!showAdd); setShowTgConfig(false); }}
-            style={{ flex: 1, background: "#1a1a1a", color: "#ccc", border: "1px solid #333", padding: "10px 8px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
-            {showAdd ? "✕ CANCELAR" : "+ SET"}</button>
-          <button onClick={checkAll} disabled={globalLoading}
-            style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: "10px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: globalLoading ? 0.5 : 1 }}>
-            {globalLoading ? "BUSCANDO..." : "▶ REVISAR TODOS"}</button>
-        </div>
-        {alertCount > 0 && tgReady && (
-          <button onClick={sendAllAlerts}
-            style={{ width: "100%", marginTop: 8, background: "#0d1f2e", color: "#2AABEE", border: "1px solid #1a3a52", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
-            ✈ ENVIAR {alertCount} ALERTA{alertCount > 1 ? "S" : ""} A CLINK</button>
-        )}
       </div>
+
       {showTgConfig && <TelegramConfig config={tgConfig} onSave={saveTgConfig} onClose={() => setShowTgConfig(false)} />}
+
+      {/* Add Set */}
       {showAdd && (
         <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16 }}>
           <div style={{ fontSize: 11, color: "#f0a500", letterSpacing: 2, marginBottom: 12 }}>NUEVO SET</div>
@@ -469,7 +502,10 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
           </div>
         </div>
       )}
-      <div style={{ padding: "12px 16px", display: "flex", borderBottom: "1px solid #141414", background: "#080808" }}>
+
+      {/* Stats */}
+      <div style={{ padding: "12px 24px", borderBottom: "1px solid #141414", background: "#080808" }}>
+        <div className="stats-inner">
         {[
           { label: "SETS", val: sets.length },
           { label: "ALERTAS", val: alertCount, accent: true },
@@ -481,25 +517,44 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
             <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, color: accent && val > 0 ? "#ff3b3b" : blue && val > 0 ? "#2AABEE" : "#ccc" }}>{val}</div>
           </div>
         ))}
+        </div>
       </div>
-      <div style={{ padding: 16 }}>
+
+      {/* Cards */}
+      <div className="cards-inner">
+        <div className="cards-grid">
         {sets.map(set => (
           <SetCard
-            key={set.id} set={set} d={priceData[set.id]} status={getStatus(set)}
-            loadingId={loadingId} tgSt={tgStatus[set.id]}
-            onCheck={() => checkPrice(set)} onSend={() => setPreview({ set, d: priceData[set.id] })}
-            onRemove={() => removeSet(set.id)} onEdit={editSet}
+            key={set.id}
+            set={set}
+            d={priceData[set.id]}
+            status={getStatus(set)}
+            loadingId={loadingId}
+            tgSt={tgStatus[set.id]}
+            onCheck={() => checkPrice(set)}
+            onSend={() => setPreview({ set, d: priceData[set.id] })}
+            onRemove={() => removeSet(set.id)}
+            onEdit={editSet}
             onManualPrice={(priceObj) => setManualPrice(set.id, priceObj)}
           />
         ))}
-        {sets.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>}
+        {sets.length === 0 && (
+          <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>
+        )}
+        </div>
       </div>
-      <div style={{ padding: "12px 16px", borderTop: "1px solid #111" }}>
+
+      <div style={{ padding: "12px 24px", borderTop: "1px solid #111" }}>
         <div style={{ fontSize: 9, color: "#333", letterSpacing: 1 }}>CLINK @CLINK_MX · Amazon.com.mx · Los precios pueden variar</div>
       </div>
+
       {preview && (
-        <PreviewModal set={preview.set} d={preview.d} sending={sending} sent={tgStatus[preview.set.id] === "sent"}
-          onClose={() => setPreview(null)} onSend={() => handleSend(preview.set, preview.d)} />
+        <PreviewModal
+          set={preview.set} d={preview.d}
+          sending={sending} sent={tgStatus[preview.set.id] === "sent"}
+          onClose={() => setPreview(null)}
+          onSend={() => handleSend(preview.set, preview.d)}
+        />
       )}
     </div>
   );
