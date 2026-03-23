@@ -74,7 +74,19 @@ function getDiscount(d) {
   return null;
 }
 
-function buildCaption(set, d) {
+function isAlert(set, d) {
+  if (!d?.found || !d.price) return false;
+  const price = d.price;
+  // Si tiene datos de 90 días, usar esos como referencia
+  if (set.avg90 || set.min90) {
+    const isNewLow = set.min90 ? Math.abs(price - set.min90) <= 1 : false;
+    const diffVsAvg = set.avg90 ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
+    return isNewLow || (diffVsAvg != null && diffVsAvg >= 12);
+  }
+  // Fallback: usar descuento de Amazon si no hay datos 90d
+  const disc = getDiscount(d);
+  return disc != null && disc >= set.minDiscount;
+}
   const price = d.price;
   const pct = getDiscount(d);
   const url = d.url || canonicalUrl(set.asin) || "";
@@ -175,7 +187,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   const [showManual, setShowManual] = useState(false);
 
   const discount = getDiscount(d);
-  const hasAlert = d?.found && discount != null && discount >= set.minDiscount;
+  const hasAlert = isAlert(set, d);
   const isLoading = loadingId === set.id;
   const statusColor = { idle: "#555", loading: "#f0a500", alert: "#ff3b3b", ok: "#2ecc71" }[status] || "#555";
 
@@ -432,7 +444,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
   const sendAllAlerts = async () => {
     if (!tgConfig.botToken || !tgConfig.chatId) { setShowTgConfig(true); return; }
-    const alerts = sets.filter(s => { const d = priceData[s.id]; const disc = getDiscount(d); return d?.found && disc != null && disc >= s.minDiscount; });
+    const alerts = sets.filter(s => isAlert(s, priceData[s.id]));
     for (const set of alerts) { await handleSend(set, priceData[set.id]); await new Promise(r => setTimeout(r, 700)); }
   };
 
@@ -440,12 +452,11 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     if (loadingId === set.id) return "loading";
     const d = priceData[set.id];
     if (!d || d.error || !d.found) return "idle";
-    const disc = getDiscount(d);
-    if (disc != null && disc >= set.minDiscount) return "alert";
+    if (isAlert(set, d)) return "alert";
     return "ok";
   };
 
-  const alertCount = sets.filter(s => { const d = priceData[s.id]; const disc = getDiscount(d); return d?.found && disc != null && disc >= s.minDiscount; }).length;
+  const alertCount = sets.filter(s => isAlert(s, priceData[s.id])).length;
   const tgReady = !!(tgConfig.botToken && tgConfig.chatId);
   const inp = { width: "100%", background: "#1a1a1a", border: "1px solid #333", color: "#e0e0e0", padding: "10px 12px", borderRadius: 6, fontFamily: "monospace", fontSize: 13, outline: "none" };
 
