@@ -1,13 +1,54 @@
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "clink-lego-sets";
-const CHECKS_KEY = "clink-price-checks";
 const TG_KEY = "clink-tg-config";
+const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
+const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
+const SUPABASE_URL = "https://dnphngdkphylfvgsxmui.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucGhuZ2RrcGh5bGZ2Z3N4bXVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMjcwNzIsImV4cCI6MjA4OTgwMzA3Mn0.Qyqj-ImZ6pg_G4kieMQdRaZBmZhODCamFhsQS6xKp1w";
 
-const DEFAULT_SETS = [
-  { id: 1, name: "LEGO Technic Bugatti Chiron", sku: "42083", minDiscount: 30, asin: "B07BM5D3VG", img: "" },
-  { id: 2, name: "LEGO Icons Colosseum", sku: "10276", minDiscount: 30, asin: "B08HM3VTCZ", img: "" },
-];
+const sbHeaders = {
+  "Content-Type": "application/json",
+  "apikey": SUPABASE_KEY,
+  "Authorization": `Bearer ${SUPABASE_KEY}`,
+  "Prefer": "return=representation"
+};
+
+async function sbGetSets() {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/sets?order=id`, { headers: sbHeaders });
+  const data = await r.json();
+  return data.map(s => ({
+    id: s.id, name: s.name, sku: s.sku, asin: s.asin || "", img: s.img || "",
+    minDiscount: s.min_discount || 30, avg90: s.avg90, min90: s.min90, notes: s.notes || "",
+    priceData: s.price_data || null
+  }));
+}
+
+async function sbAddSet(set) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/sets`, {
+    method: "POST", headers: sbHeaders,
+    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes })
+  });
+  const data = await r.json();
+  return data[0];
+}
+
+async function sbUpdateSet(set) {
+  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${set.id}`, {
+    method: "PATCH", headers: sbHeaders,
+    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes })
+  });
+}
+
+async function sbUpdatePriceData(id, priceData) {
+  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, {
+    method: "PATCH", headers: sbHeaders,
+    body: JSON.stringify({ price_data: priceData })
+  });
+}
+
+async function sbDeleteSet(id) {
+  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, { method: "DELETE", headers: sbHeaders });
+}
 
 function discountBadge(pct) {
   const p = Number(pct) || 0;
@@ -53,30 +94,19 @@ function buildCaption(set, d) {
   return { text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900), url };
 }
 
-const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
-const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
-
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
   const reply_markup = { inline_keyboard: [[{ text: "Ver en Amazon", url }]] };
-
   const res = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      botToken, chatId,
-      text: img ? text : text + "\n" + url,
-      photo: img || null,
-      reply_markup
-    })
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ botToken, chatId, text: img ? text : text + "\n" + url, photo: img || null, reply_markup })
   });
   const json = await res.json();
   if (!json.ok) throw new Error(json.description || "Error Telegram");
   return json;
 }
 
-// ── Telegram Config ──
 function TelegramConfig({ config, onSave, onClose }) {
   const [token, setToken] = useState(config.botToken || "");
   const [chatId, setChatId] = useState(config.chatId || "");
@@ -86,10 +116,7 @@ function TelegramConfig({ config, onSave, onClose }) {
   const test = async () => {
     setTesting(true); setResult(null);
     try {
-      const r = await fetch(WORKER_URL, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ botToken: token, chatId, text: "🧱 CLINK tracker conectado ✅" })
-      });
+      const r = await fetch(WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ botToken: token, chatId, text: "🧱 CLINK tracker conectado ✅" }) });
       const j = await r.json();
       setResult(j.ok ? "ok" : j.description || "error");
     } catch (e) { setResult(e.message); }
@@ -104,12 +131,8 @@ function TelegramConfig({ config, onSave, onClose }) {
         <div><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>CHAT ID / @canal</div>
           <input value={chatId} onChange={e => setChatId(e.target.value)} placeholder="@CLINK_MX" style={inp} /></div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={test} disabled={testing || !token || !chatId}
-            style={{ flex: 1, background: "#1a1a1a", color: "#aaa", border: "1px solid #333", padding: 10, borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
-            {testing ? "PROBANDO…" : "PROBAR"}</button>
-          <button onClick={() => onSave({ botToken: token, chatId })}
-            style={{ flex: 2, background: "#2AABEE", color: "#000", border: "none", padding: 10, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>
-            GUARDAR</button>
+          <button onClick={test} disabled={testing || !token || !chatId} style={{ flex: 1, background: "#1a1a1a", color: "#aaa", border: "1px solid #333", padding: 10, borderRadius: 6, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>{testing ? "PROBANDO…" : "PROBAR"}</button>
+          <button onClick={() => onSave({ botToken: token, chatId })} style={{ flex: 2, background: "#2AABEE", color: "#000", border: "none", padding: 10, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>GUARDAR</button>
           <button onClick={onClose} style={{ background: "#222", color: "#888", border: "none", padding: "10px 14px", borderRadius: 6, fontSize: 14, cursor: "pointer" }}>✕</button>
         </div>
       </div>
@@ -119,7 +142,6 @@ function TelegramConfig({ config, onSave, onClose }) {
   );
 }
 
-// ── Preview Modal ──
 function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
@@ -137,8 +159,7 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
         {img && <div style={{ fontSize: 10, color: "#555", marginBottom: 10 }}>📷 Se enviará con imagen</div>}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, background: "#222", color: "#aaa", border: "none", padding: 14, borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "monospace" }}>CANCELAR</button>
-          <button onClick={onSend} disabled={sending || sent}
-            style={{ flex: 2, background: sent ? "#2ecc71" : "#2AABEE", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}>
+          <button onClick={onSend} disabled={sending || sent} style={{ flex: 2, background: sent ? "#2ecc71" : "#2AABEE", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}>
             {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR EN CANAL"}</button>
         </div>
       </div>
@@ -146,7 +167,6 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   );
 }
 
-// ── Set Card ──
 function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPrice, loadingId, tgSt }) {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ ...set });
@@ -205,8 +225,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>NOTA</div>
             <input value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} /></div>
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-            <button onClick={() => setEditing(false)}
-              style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>CANCELAR</button>
+            <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>CANCELAR</button>
             <button onClick={() => { onEdit({ ...editData, minDiscount: parseInt(editData.minDiscount) || 30, avg90: parseFloat(editData.avg90) || null, min90: parseFloat(editData.min90) || null }); setEditing(false); }}
               style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>GUARDAR</button>
           </div>
@@ -217,11 +236,8 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   return (
     <div style={{ background: hasAlert ? "rgba(255,59,59,0.06)" : "#111", border: `1px solid ${hasAlert ? "#ff3b3b55" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
-      {/* Imagen si existe */}
       {set.img && <img src={set.img} alt={set.name} style={{ width: "100%", maxHeight: 140, objectFit: "cover", display: "block" }} onError={e => e.target.style.display = "none"} />}
-
       <div style={{ padding: 16 }}>
-        {/* Top row */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #ff3b3b" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
@@ -232,20 +248,16 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            <button onClick={onCheck} disabled={isLoading}
-              style={{ background: "#1e1e1e", color: "#bbb", border: "1px solid #333", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <button onClick={onCheck} disabled={isLoading} style={{ background: "#1e1e1e", color: "#bbb", border: "1px solid #333", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {isLoading ? "…" : "↻"}</button>
             {d?.found && d.price && (
               <button onClick={onSend} disabled={tgSt === "sending"}
                 style={{ background: tgSt === "sent" ? "#0a2a10" : tgSt === "error" ? "#2a0a0a" : hasAlert ? "#0a1825" : "#1a1a1a", color: tgSt === "sent" ? "#2ecc71" : tgSt === "error" ? "#ff5555" : hasAlert ? "#2AABEE" : "#777", border: `1px solid ${tgSt === "sent" ? "#1a4a2a" : tgSt === "error" ? "#4a1a1a" : hasAlert ? "#1a3a52" : "#333"}`, width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {tgSt === "sent" ? "✓" : tgSt === "sending" ? "…" : tgSt === "error" ? "✗" : "✈"}</button>
             )}
-            <button onClick={onRemove}
-              style={{ background: "#2a1010", color: "#cc4444", border: "1px solid #441a1a", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            <button onClick={onRemove} style={{ background: "#2a1010", color: "#cc4444", border: "1px solid #441a1a", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
         </div>
-
-        {/* Price row */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, paddingTop: 12, borderTop: "1px solid #1e1e1e" }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 2 }}>PRECIO HOY</div>
@@ -268,11 +280,8 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               : d?.found && discount != null ? <span style={{ color: "#555", fontSize: 11 }}>min {set.minDiscount}%</span> : null}
           </div>
         </div>
-
-        {/* Manual price */}
         <div style={{ marginTop: 10 }}>
-          <button onClick={() => setShowManual(!showManual)}
-            style={{ background: "transparent", color: "#444", border: "none", fontSize: 11, cursor: "pointer", fontFamily: "monospace", padding: 0 }}>
+          <button onClick={() => setShowManual(!showManual)} style={{ background: "transparent", color: "#444", border: "none", fontSize: 11, cursor: "pointer", fontFamily: "monospace", padding: 0 }}>
             {showManual ? "▲ ocultar" : "✎ ingresar precio manual"}
           </button>
           {showManual && (
@@ -285,15 +294,12 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
                 <div style={{ fontSize: 9, color: "#555", marginBottom: 3 }}>PRECIO ORIGINAL</div>
                 <input value={manualOriginal} onChange={e => setManualOriginal(e.target.value)} placeholder="1999" type="number" style={{ ...inp, fontSize: 13 }} />
               </div>
-              <button onClick={saveManual}
-                style={{ background: "#f0a500", color: "#000", border: "none", padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>OK</button>
+              <button onClick={saveManual} style={{ background: "#f0a500", color: "#000", border: "none", padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>OK</button>
             </div>
           )}
         </div>
-
         {d?.url && (
-          <a href={d.url} target="_blank" rel="noopener noreferrer"
-            style={{ display: "block", marginTop: 8, fontSize: 11, color: "#f0a500", textDecoration: "none", opacity: 0.7 }}>
+          <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 8, fontSize: 11, color: "#f0a500", textDecoration: "none", opacity: 0.7 }}>
             Ver en Amazon ↗
           </a>
         )}
@@ -302,7 +308,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   );
 }
 
-// ── Main ──
 export default function LEGOTracker() {
   const [sets, setSets] = useState([]);
   const [priceData, setPriceData] = useState({});
@@ -318,26 +323,27 @@ export default function LEGOTracker() {
   const [sending, setSending] = useState(false);
   const [tgStatus, setTgStatus] = useState({});
   const [sentIds, setSentIds] = useState(new Set());
+  const [dbLoading, setDbLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const savedChecks = localStorage.getItem(CHECKS_KEY);
     const savedTg = localStorage.getItem(TG_KEY);
-    setSets(saved ? JSON.parse(saved) : DEFAULT_SETS);
-    if (savedChecks) setPriceData(JSON.parse(savedChecks));
     if (savedTg) setTgConfig(JSON.parse(savedTg));
+    sbGetSets().then(data => {
+      setSets(data);
+      const pd = {};
+      data.forEach(s => { if (s.priceData) pd[s.id] = s.priceData; });
+      setPriceData(pd);
+      setDbLoading(false);
+    }).catch(() => setDbLoading(false));
   }, []);
 
-  const saveSets = (s) => { setSets(s); localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); };
-  const savePriceData = (d) => { setPriceData(d); localStorage.setItem(CHECKS_KEY, JSON.stringify(d)); };
   const saveTgConfig = (c) => { setTgConfig(c); localStorage.setItem(TG_KEY, JSON.stringify(c)); setShowTgConfig(false); };
 
   const checkPrice = useCallback(async (set) => {
     setLoadingId(set.id);
     try {
       const response = await fetch(ANTHROPIC_WORKER, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
@@ -350,19 +356,33 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         })
       });
       const data = await response.json();
-      if (data.error) { savePriceData({ ...priceData, [set.id]: { error: true, errorMsg: data.error.message, checkedAt: new Date().toISOString() } }); setLoadingId(null); return; }
+      if (data.error) {
+        const pd = { error: true, errorMsg: data.error.message, checkedAt: new Date().toISOString() };
+        setPriceData(prev => ({ ...prev, [set.id]: pd }));
+        await sbUpdatePriceData(set.id, pd);
+        setLoadingId(null); return;
+      }
       const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
       let parsed = null;
       try { const m = text.replace(/```json|```/g, "").trim().match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); } catch {}
-      if (!parsed) { savePriceData({ ...priceData, [set.id]: { error: true, errorMsg: "Sin respuesta", checkedAt: new Date().toISOString() } }); setLoadingId(null); return; }
+      if (!parsed) {
+        const pd = { error: true, errorMsg: "Sin respuesta", checkedAt: new Date().toISOString() };
+        setPriceData(prev => ({ ...prev, [set.id]: pd }));
+        await sbUpdatePriceData(set.id, pd);
+        setLoadingId(null); return;
+      }
       if (set.asin && (!parsed.url || !parsed.url.includes("amazon.com.mx"))) parsed.url = canonicalUrl(set.asin);
-      savePriceData({ ...priceData, [set.id]: { ...parsed, checkedAt: new Date().toISOString() } });
+      const pd = { ...parsed, checkedAt: new Date().toISOString() };
+      setPriceData(prev => ({ ...prev, [set.id]: pd }));
+      await sbUpdatePriceData(set.id, pd);
       setLastCheck(new Date().toLocaleTimeString("es-MX"));
     } catch (err) {
-      savePriceData({ ...priceData, [set.id]: { error: true, errorMsg: err.message, checkedAt: new Date().toISOString() } });
+      const pd = { error: true, errorMsg: err.message, checkedAt: new Date().toISOString() };
+      setPriceData(prev => ({ ...prev, [set.id]: pd }));
+      await sbUpdatePriceData(set.id, pd);
     }
     setLoadingId(null);
-  }, [priceData]);
+  }, []);
 
   const checkAll = async () => {
     setGlobalLoading(true);
@@ -370,16 +390,29 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     setGlobalLoading(false);
   };
 
-  const addSet = () => {
+  const addSet = async () => {
     if (!newSet.name || !newSet.sku) return;
-    saveSets([...sets, { ...newSet, id: Date.now(), minDiscount: parseInt(newSet.minDiscount) || 30, avg90: parseFloat(newSet.avg90) || null, min90: parseFloat(newSet.min90) || null }]);
+    const created = await sbAddSet({ ...newSet, minDiscount: parseInt(newSet.minDiscount) || 30, avg90: parseFloat(newSet.avg90) || null, min90: parseFloat(newSet.min90) || null });
+    if (created) setSets(prev => [...prev, { ...created, minDiscount: created.min_discount, priceData: null }]);
     setNewSet({ name: "", sku: "", minDiscount: "30", asin: "", img: "", avg90: "", min90: "", notes: "" });
     setShowAdd(false); setShowExtra(false);
   };
 
-  const editSet = (updated) => saveSets(sets.map(s => s.id === updated.id ? updated : s));
-  const removeSet = (id) => { saveSets(sets.filter(s => s.id !== id)); const { [id]: _, ...rest } = priceData; savePriceData(rest); };
-  const setManualPrice = (id, priceObj) => savePriceData({ ...priceData, [id]: priceObj });
+  const editSet = async (updated) => {
+    setSets(prev => prev.map(s => s.id === updated.id ? updated : s));
+    await sbUpdateSet(updated);
+  };
+
+  const removeSet = async (id) => {
+    setSets(prev => prev.filter(s => s.id !== id));
+    setPriceData(prev => { const n = { ...prev }; delete n[id]; return n; });
+    await sbDeleteSet(id);
+  };
+
+  const setManualPrice = async (id, priceObj) => {
+    setPriceData(prev => ({ ...prev, [id]: priceObj }));
+    await sbUpdatePriceData(id, priceObj);
+  };
 
   const handleSend = async (set, d) => {
     if (!tgConfig.botToken || !tgConfig.chatId) { setShowTgConfig(true); setPreview(null); return; }
@@ -422,16 +455,14 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .cards-grid { display: grid; grid-template-columns: 1fr; gap: 0; padding: 16px; }
         @media (min-width: 768px) { .cards-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 24px; } }
         @media (min-width: 1200px) { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
-        .header-inner { max-width: 1400px; margin: 0 auto; }
-        .stats-inner { max-width: 1400px; margin: 0 auto; display: flex; }
-        .cards-inner { max-width: 1400px; margin: 0 auto; }
-        .footer-inner { max-width: 1400px; margin: 0 auto; }
+        .header-inner, .stats-inner, .cards-inner, .footer-inner { max-width: 1400px; margin: 0 auto; }
+        .stats-inner { display: flex; }
       `}</style>
 
-      {/* Header */}
       <div style={{ background: "#0d0d0d", borderBottom: "1px solid #1e1e1e", padding: "14px 24px" }}>
         <div className="header-inner">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -462,7 +493,6 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
       {showTgConfig && <TelegramConfig config={tgConfig} onSave={saveTgConfig} onClose={() => setShowTgConfig(false)} />}
 
-      {/* Add Set */}
       {showAdd && (
         <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16 }}>
           <div style={{ fontSize: 11, color: "#f0a500", letterSpacing: 2, marginBottom: 12 }}>NUEVO SET</div>
@@ -481,8 +511,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
               <input value={newSet.img} onChange={e => setNewSet({ ...newSet, img: e.target.value })} placeholder="https://m.media-amazon.com/images/..." style={inp} />
               {newSet.img && <img src={newSet.img} alt="" style={{ width: "100%", maxHeight: 100, objectFit: "contain", marginTop: 6, borderRadius: 4, background: "#0a0a0a" }} onError={e => e.target.style.display = "none"} />}
             </div>
-            <button onClick={() => setShowExtra(!showExtra)}
-              style={{ background: "#161616", color: "#666", border: "1px solid #222", padding: 8, borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: "monospace" }}>
+            <button onClick={() => setShowExtra(!showExtra)} style={{ background: "#161616", color: "#666", border: "1px solid #222", padding: 8, borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: "monospace" }}>
               {showExtra ? "▲ OCULTAR HISTÓRICOS" : "▼ + DATOS 90D"}</button>
             {showExtra && (
               <>
@@ -496,65 +525,54 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
                   <input value={newSet.notes} onChange={e => setNewSet({ ...newSet, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} /></div>
               </>
             )}
-            <button onClick={addSet}
-              style={{ background: "#f0a500", color: "#000", border: "none", padding: 12, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>
+            <button onClick={addSet} style={{ background: "#f0a500", color: "#000", border: "none", padding: 12, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>
               GUARDAR SET</button>
           </div>
         </div>
       )}
 
-      {/* Stats */}
       <div style={{ padding: "12px 24px", borderBottom: "1px solid #141414", background: "#080808" }}>
         <div className="stats-inner">
-        {[
-          { label: "SETS", val: sets.length },
-          { label: "ALERTAS", val: alertCount, accent: true },
-          { label: "HOY", val: Object.values(priceData).filter(d => d.checkedAt && new Date(d.checkedAt).toDateString() === new Date().toDateString()).length },
-          { label: "ENVIADOS", val: sentIds.size, blue: true },
-        ].map(({ label, val, accent, blue }) => (
-          <div key={label} style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 9, color: "#444", letterSpacing: 2 }}>{label}</div>
-            <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, color: accent && val > 0 ? "#ff3b3b" : blue && val > 0 ? "#2AABEE" : "#ccc" }}>{val}</div>
-          </div>
-        ))}
+          {[
+            { label: "SETS", val: sets.length },
+            { label: "ALERTAS", val: alertCount, accent: true },
+            { label: "HOY", val: Object.values(priceData).filter(d => d.checkedAt && new Date(d.checkedAt).toDateString() === new Date().toDateString()).length },
+            { label: "ENVIADOS", val: sentIds.size, blue: true },
+          ].map(({ label, val, accent, blue }) => (
+            <div key={label} style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: "#444", letterSpacing: 2 }}>{label}</div>
+              <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, color: accent && val > 0 ? "#ff3b3b" : blue && val > 0 ? "#2AABEE" : "#ccc" }}>{val}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Cards */}
       <div className="cards-inner">
-        <div className="cards-grid">
-        {sets.map(set => (
-          <SetCard
-            key={set.id}
-            set={set}
-            d={priceData[set.id]}
-            status={getStatus(set)}
-            loadingId={loadingId}
-            tgSt={tgStatus[set.id]}
-            onCheck={() => checkPrice(set)}
-            onSend={() => setPreview({ set, d: priceData[set.id] })}
-            onRemove={() => removeSet(set.id)}
-            onEdit={editSet}
-            onManualPrice={(priceObj) => setManualPrice(set.id, priceObj)}
-          />
-        ))}
-        {sets.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>
+        {dbLoading ? (
+          <div style={{ padding: 60, textAlign: "center", color: "#555", fontSize: 12, letterSpacing: 2 }}>CARGANDO SETS…</div>
+        ) : (
+          <div className="cards-grid">
+            {sets.map(set => (
+              <SetCard
+                key={set.id} set={set} d={priceData[set.id]} status={getStatus(set)}
+                loadingId={loadingId} tgSt={tgStatus[set.id]}
+                onCheck={() => checkPrice(set)} onSend={() => setPreview({ set, d: priceData[set.id] })}
+                onRemove={() => removeSet(set.id)} onEdit={editSet}
+                onManualPrice={(priceObj) => setManualPrice(set.id, priceObj)}
+              />
+            ))}
+            {sets.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>}
+          </div>
         )}
-        </div>
       </div>
 
       <div style={{ padding: "12px 24px", borderTop: "1px solid #111" }}>
-        <div style={{ fontSize: 9, color: "#333", letterSpacing: 1 }}>CLINK @CLINK_MX · Amazon.com.mx · Los precios pueden variar</div>
+        <div style={{ fontSize: 9, color: "#333", letterSpacing: 1 }}>CLINK @CLINK_MX · Amazon.com.mx · Sincronizado con Supabase</div>
       </div>
 
       {preview && (
-        <PreviewModal
-          set={preview.set} d={preview.d}
-          sending={sending} sent={tgStatus[preview.set.id] === "sent"}
-          onClose={() => setPreview(null)}
-          onSend={() => handleSend(preview.set, preview.d)}
-        />
+        <PreviewModal set={preview.set} d={preview.d} sending={sending} sent={tgStatus[preview.set.id] === "sent"}
+          onClose={() => setPreview(null)} onSend={() => handleSend(preview.set, preview.d)} />
       )}
     </div>
   );
