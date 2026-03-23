@@ -80,7 +80,7 @@ function isAlert(set, d) {
   const price = d.price;
   if (set.avg90 || set.min90) {
     const isNewLow = set.min90 ? price <= set.min90 : false;
-    const isBelowAvg = set.avg90 ? price < set.avg90 : false;
+    const isBelowAvg = set.avg90 ? price < (set.avg90 - 1) : false;
     return isNewLow || isBelowAvg;
   }
   // Fallback sin datos 90d: usar descuento de Amazon
@@ -98,7 +98,7 @@ function buildCaption(set, d) {
   const diffVsAvg = (set.avg90 && price) ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
   const isNewLow = set.min90 && price ? price <= set.min90 : false;
   const isCaidaFuerte = diffVsAvg != null && diffVsAvg >= (set.minDiscount || 3);
-  const isBuenPrecio = set.avg90 && price < set.avg90;
+  const isBuenPrecio = set.avg90 && price < (set.avg90 - 1);
   let tag = "";
   if (isNewLow) tag = "🔥 NUEVO MÍNIMO 90D";
   else if (isCaidaFuerte) tag = "💥 CAÍDA FUERTE";
