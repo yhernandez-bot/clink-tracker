@@ -19,6 +19,7 @@ async function sbGetSets() {
   return data.map(s => ({
     id: s.id, name: s.name, sku: s.sku, asin: s.asin || "", img: s.img || "",
     minDiscount: s.min_discount || 30, avg90: s.avg90, min90: s.min90, notes: s.notes || "",
+    originalPrice: s.original_price || null,
     priceData: s.price_data || null
   }));
 }
@@ -26,7 +27,7 @@ async function sbGetSets() {
 async function sbAddSet(set) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/sets`, {
     method: "POST", headers: sbHeaders,
-    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes })
+    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes, original_price: set.originalPrice || null })
   });
   const data = await r.json();
   return data[0];
@@ -35,7 +36,7 @@ async function sbAddSet(set) {
 async function sbUpdateSet(set) {
   await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${set.id}`, {
     method: "PATCH", headers: sbHeaders,
-    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes })
+    body: JSON.stringify({ name: set.name, sku: set.sku, asin: set.asin, img: set.img, min_discount: set.minDiscount, avg90: set.avg90, min90: set.min90, notes: set.notes, original_price: set.originalPrice || null })
   });
 }
 
@@ -191,7 +192,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   const discount = getDiscount(d);
   const hasAlert = isAlert(set, d);
   const isLoading = loadingId === set.id;
-  const statusColor = { idle: "#555", loading: "#f0a500", alert: "#ff3b3b", ok: "#2ecc71" }[status] || "#555";
+  const statusColor = { idle: "#555", loading: "#f0a500", alert: "#2ecc71", ok: "#2ecc71" }[status] || "#555";
 
   const timeAgo = (iso) => {
     if (!iso) return "sin revisar";
@@ -205,7 +206,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   const saveManual = () => {
     const p = parseFloat(manualPrice);
-    const o = parseFloat(manualOriginal);
+    const o = parseFloat(manualOriginal) || set.originalPrice || null;
     if (!p) return;
     const disc = o ? Math.round((1 - p / o) * 100) : null;
     onManualPrice({ found: true, price: p, originalPrice: o || null, discount: disc, url: canonicalUrl(set.asin), availability: "Manual", checkedAt: new Date().toISOString() });
@@ -230,8 +231,9 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>URL IMAGEN</div>
             <input value={editData.img || ""} onChange={e => setEditData({ ...editData, img: e.target.value })} placeholder="https://..." style={inp} /></div>
           {editData.img && <img src={editData.img} alt="" style={{ width: "100%", maxHeight: 120, objectFit: "contain", borderRadius: 6, background: "#111" }} onError={e => e.target.style.display = "none"} />}
+          <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PRECIO ORIGINAL $MXN</div>
+            <input value={editData.originalPrice || ""} onChange={e => setEditData({ ...editData, originalPrice: e.target.value })} placeholder="1799" type="number" style={inp} /></div>
           <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PROM 90D</div>
               <input value={editData.avg90 || ""} onChange={e => setEditData({ ...editData, avg90: e.target.value })} type="number" style={inp} /></div>
             <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MÍN 90D</div>
               <input value={editData.min90 || ""} onChange={e => setEditData({ ...editData, min90: e.target.value })} type="number" style={inp} /></div>
@@ -240,7 +242,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             <input value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} /></div>
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>CANCELAR</button>
-            <button onClick={() => { onEdit({ ...editData, minDiscount: parseInt(editData.minDiscount) || 30, avg90: parseFloat(editData.avg90) || null, min90: parseFloat(editData.min90) || null }); setEditing(false); }}
+            <button onClick={() => { onEdit({ ...editData, minDiscount: parseInt(editData.minDiscount) || 30, avg90: parseFloat(editData.avg90) || null, min90: parseFloat(editData.min90) || null, originalPrice: parseFloat(editData.originalPrice) || null }); setEditing(false); }}
               style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>GUARDAR</button>
           </div>
         </div>
@@ -249,14 +251,14 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   }
 
   return (
-    <div style={{ background: hasAlert ? "rgba(255,59,59,0.06)" : "#111", border: `1px solid ${hasAlert ? "#ff3b3b55" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+    <div style={{ background: hasAlert ? "rgba(46,204,113,0.06)" : "#111", border: `1px solid ${hasAlert ? "#2ecc7155" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
       {set.img && <img src={set.img} alt={set.name} style={{ width: "100%", maxHeight: 140, objectFit: "cover", display: "block" }} onError={e => e.target.style.display = "none"} />}
       <div style={{ padding: 16 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #ff3b3b" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#ff7777" : "#e0e0e0", lineHeight: 1.3 }}>{set.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#e0e0e0", lineHeight: 1.3 }}>{set.name}</div>
               <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>#{set.sku} · ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span></div>
               {d?.error && <div style={{ fontSize: 11, color: "#ff5555", marginTop: 2 }}>⚠ Error al buscar precio</div>}
             </div>
@@ -276,12 +278,12 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 2 }}>PRECIO HOY</div>
             {isLoading ? <div style={{ fontSize: 12, color: "#f0a500" }}>buscando…</div>
-              : d?.found && d.price ? <div style={{ fontSize: 18, fontWeight: 700, color: hasAlert ? "#ff4444" : "#ccc", fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>{fmtPrice(d.price)}</div>
+              : d?.found && d.price ? <div style={{ fontSize: 18, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#ccc", fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>{fmtPrice(d.price)}</div>
               : <div style={{ fontSize: 13, color: "#444" }}>—</div>}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 2 }}>DESCUENTO</div>
-            {discount != null ? <div style={{ fontSize: 20, fontWeight: 700, color: hasAlert ? "#ff4444" : "#f0a500", fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>−{discount}%</div>
+            {discount != null ? <div style={{ fontSize: 20, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#f0a500", fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 1 }}>−{discount}%</div>
               : <div style={{ fontSize: 13, color: "#444" }}>—</div>}
           </div>
           <div style={{ flex: 1 }}>
@@ -290,7 +292,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
               : <div style={{ fontSize: 13, color: "#444" }}>—</div>}
           </div>
           <div>
-            {hasAlert ? <span style={{ background: "#ff3b3b", color: "#fff", fontSize: 10, padding: "4px 8px", borderRadius: 4, letterSpacing: 1 }}>ALERTA</span>
+            {hasAlert ? <span style={{ background: "#2ecc71", color: "#000", fontSize: 10, padding: "4px 8px", borderRadius: 4, letterSpacing: 1, fontWeight: 700 }}>ALERTA</span>
               : d?.found && discount != null ? <span style={{ color: "#555", fontSize: 11 }}>min {set.minDiscount}%</span> : null}
           </div>
         </div>
@@ -304,10 +306,18 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
                 <div style={{ fontSize: 9, color: "#555", marginBottom: 3 }}>PRECIO ACTUAL</div>
                 <input value={manualPrice} onChange={e => setManualPrice(e.target.value)} placeholder="1299" type="number" style={{ ...inp, fontSize: 13 }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 9, color: "#555", marginBottom: 3 }}>PRECIO ORIGINAL</div>
-                <input value={manualOriginal} onChange={e => setManualOriginal(e.target.value)} placeholder="1999" type="number" style={{ ...inp, fontSize: 13 }} />
-              </div>
+              {!set.originalPrice && (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, color: "#555", marginBottom: 3 }}>PRECIO ORIGINAL</div>
+                  <input value={manualOriginal} onChange={e => setManualOriginal(e.target.value)} placeholder="1999" type="number" style={{ ...inp, fontSize: 13 }} />
+                </div>
+              )}
+              {set.originalPrice && (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, color: "#555", marginBottom: 3 }}>PRECIO ORIGINAL</div>
+                  <div style={{ fontSize: 13, color: "#666", padding: "8px 10px", background: "#111", borderRadius: 6, border: "1px solid #222" }}>{fmtPrice(set.originalPrice)}</div>
+                </div>
+              )}
               <button onClick={saveManual} style={{ background: "#f0a500", color: "#000", border: "none", padding: "8px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>OK</button>
             </div>
           )}
@@ -330,7 +340,7 @@ export default function LEGOTracker() {
   const [showExtra, setShowExtra] = useState(false);
   const [showTgConfig, setShowTgConfig] = useState(false);
   const [tgConfig, setTgConfig] = useState({ botToken: "", chatId: "" });
-  const [newSet, setNewSet] = useState({ name: "", sku: "", minDiscount: "30", asin: "", img: "", avg90: "", min90: "", notes: "" });
+  const [newSet, setNewSet] = useState({ name: "", sku: "", minDiscount: "30", asin: "", img: "", avg90: "", min90: "", notes: "", originalPrice: "" });
   const [globalLoading, setGlobalLoading] = useState(false);
   const [lastCheck, setLastCheck] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -406,9 +416,9 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
   const addSet = async () => {
     if (!newSet.name || !newSet.sku) return;
-    const created = await sbAddSet({ ...newSet, minDiscount: parseInt(newSet.minDiscount) || 30, avg90: parseFloat(newSet.avg90) || null, min90: parseFloat(newSet.min90) || null });
-    if (created) setSets(prev => [...prev, { ...created, minDiscount: created.min_discount, priceData: null }]);
-    setNewSet({ name: "", sku: "", minDiscount: "30", asin: "", img: "", avg90: "", min90: "", notes: "" });
+    const created = await sbAddSet({ ...newSet, minDiscount: parseInt(newSet.minDiscount) || 30, avg90: parseFloat(newSet.avg90) || null, min90: parseFloat(newSet.min90) || null, originalPrice: parseFloat(newSet.originalPrice) || null });
+    if (created) setSets(prev => [...prev, { ...created, minDiscount: created.min_discount, originalPrice: created.original_price, priceData: null }]);
+    setNewSet({ name: "", sku: "", minDiscount: "30", asin: "", img: "", avg90: "", min90: "", notes: "", originalPrice: "" });
     setShowAdd(false); setShowExtra(false);
   };
 
@@ -525,9 +535,11 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
               {newSet.img && <img src={newSet.img} alt="" style={{ width: "100%", maxHeight: 100, objectFit: "contain", marginTop: 6, borderRadius: 4, background: "#0a0a0a" }} onError={e => e.target.style.display = "none"} />}
             </div>
             <button onClick={() => setShowExtra(!showExtra)} style={{ background: "#161616", color: "#666", border: "1px solid #222", padding: 8, borderRadius: 6, fontSize: 11, cursor: "pointer", fontFamily: "monospace" }}>
-              {showExtra ? "▲ OCULTAR HISTÓRICOS" : "▼ + DATOS 90D"}</button>
+              {showExtra ? "▲ OCULTAR HISTÓRICOS" : "▼ + DATOS 90D / PRECIO ORIGINAL"}</button>
             {showExtra && (
               <>
+                <div><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PRECIO ORIGINAL $MXN</div>
+                  <input value={newSet.originalPrice} onChange={e => setNewSet({ ...newSet, originalPrice: e.target.value })} placeholder="1799" type="number" style={inp} /></div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PROM 90D</div>
                     <input value={newSet.avg90} onChange={e => setNewSet({ ...newSet, avg90: e.target.value })} type="number" style={inp} /></div>
@@ -554,7 +566,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
           ].map(({ label, val, accent, blue }) => (
             <div key={label} style={{ flex: 1, textAlign: "center" }}>
               <div style={{ fontSize: 9, color: "#444", letterSpacing: 2 }}>{label}</div>
-              <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, color: accent && val > 0 ? "#ff3b3b" : blue && val > 0 ? "#2AABEE" : "#ccc" }}>{val}</div>
+              <div style={{ fontSize: 26, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: 2, color: accent && val > 0 ? "#2ecc71" : blue && val > 0 ? "#2AABEE" : "#ccc" }}>{val}</div>
             </div>
           ))}
         </div>
