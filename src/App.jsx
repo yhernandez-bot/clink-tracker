@@ -87,6 +87,8 @@ function isAlert(set, d) {
   const disc = getDiscount(d);
   return disc != null && disc >= set.minDiscount;
 }
+
+function buildCaption(set, d) {
   const price = d.price;
   const pct = getDiscount(d);
   const url = d.url || canonicalUrl(set.asin) || "";
