@@ -366,7 +366,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
   const checkAll = async () => {
     setGlobalLoading(true);
-    for (const set of sets) { await checkPrice(set); await new Promise(r => setTimeout(r, 800)); }
+    for (const set of sets) { await checkPrice(set); await new Promise(r => setTimeout(r, 3000)); }
     setGlobalLoading(false);
   };
 
