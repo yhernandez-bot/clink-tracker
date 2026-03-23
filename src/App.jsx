@@ -234,6 +234,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PRECIO ORIGINAL $MXN</div>
             <input value={editData.originalPrice || ""} onChange={e => setEditData({ ...editData, originalPrice: e.target.value })} placeholder="1799" type="number" style={inp} /></div>
           <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PROM 90D</div>
               <input value={editData.avg90 || ""} onChange={e => setEditData({ ...editData, avg90: e.target.value })} type="number" style={inp} /></div>
             <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MÍN 90D</div>
               <input value={editData.min90 || ""} onChange={e => setEditData({ ...editData, min90: e.target.value })} type="number" style={inp} /></div>
@@ -256,7 +257,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
       <div style={{ padding: 16 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #ff3b3b" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #2ecc71" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#e0e0e0", lineHeight: 1.3 }}>{set.name}</div>
               <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>#{set.sku} · ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span></div>
