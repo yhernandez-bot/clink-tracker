@@ -80,12 +80,15 @@ function isAlert(set, d) {
   const price = d.price;
   // Si tiene datos de 90 días, usar esos como referencia
   if (set.avg90 || set.min90) {
-    const isNewLow = set.min90 ? Math.abs(price - set.min90) <= 1 : false;
+    const isNewLow = set.min90 ? price < set.min90 : false;
     const diffVsAvg = set.avg90 ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
     return isNewLow || (diffVsAvg != null && diffVsAvg >= 12);
   }
   // Fallback: usar descuento de Amazon si no hay datos 90d
+  // Solo disparar si el descuento es real (precio actual menor al original)
   const disc = getDiscount(d);
+  const originalPrice = set.originalPrice || d.originalPrice;
+  if (originalPrice && price >= originalPrice) return false;
   return disc != null && disc >= set.minDiscount;
 }
 
