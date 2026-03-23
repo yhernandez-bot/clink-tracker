@@ -79,7 +79,9 @@ function isAlert(set, d) {
   if (!d?.found || !d.price) return false;
   const price = d.price;
   if (set.avg90 || set.min90) {
-    const isNewLow = set.min90 ? price < set.min90 : false;
+    // Si precio = avg90 = min90, no hay historial real — no disparar
+    if (set.avg90 && set.min90 && price === set.avg90 && price === set.min90) return false;
+    const isNewLow = set.min90 ? price <= set.min90 : false;
     const isBelowAvg = set.avg90 ? price < (set.avg90 - 1) : false;
     return isNewLow || isBelowAvg;
   }
@@ -96,7 +98,7 @@ function buildCaption(set, d) {
   const url = d.url || canonicalUrl(set.asin) || "";
   const line2 = [fmtPrice(price), pct != null && pct > 0 ? `${discountBadge(pct)} -${pct}%` : null].filter(Boolean).join(" · ");
   const diffVsAvg = (set.avg90 && price) ? Math.round(((set.avg90 - price) / set.avg90) * 100) : null;
-  const isNewLow = set.min90 && price ? price < set.min90 : false;
+  const isNewLow = set.min90 && price ? price <= set.min90 : false;
   const isCaidaFuerte = diffVsAvg != null && diffVsAvg >= (set.minDiscount || 3);
   const isBuenPrecio = set.avg90 && price < (set.avg90 - 1);
   let tag = "";
