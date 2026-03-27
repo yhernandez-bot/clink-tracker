@@ -108,7 +108,7 @@ function buildCaption(set, d) {
   const extras = [
     tag || null,
     set.avg90 ? `📊 Prom 90d: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
-    set.min90 ? `📉 Mín 90d: ${fmtPrice(set.min90)}` : null,
+    set.min90 ? `📉 Mín: ${fmtPrice(set.min90)}` : null,
     set.notes ? `🧠 ${set.notes}` : null,
   ].filter(Boolean);
   return { text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900), url };
