@@ -20,6 +20,7 @@ async function sbGetSets() {
     id: s.id, name: s.name, sku: s.sku, asin: s.asin || "", img: s.img || "",
     minDiscount: s.min_discount || 30, avg90: s.avg90, min90: s.min90, notes: s.notes || "",
     originalPrice: s.original_price || null,
+    lastSent: s.last_sent || null,
     priceData: s.price_data || null
   }));
 }
@@ -44,6 +45,13 @@ async function sbUpdatePriceData(id, priceData) {
   await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, {
     method: "PATCH", headers: sbHeaders,
     body: JSON.stringify({ price_data: priceData })
+  });
+}
+
+async function sbUpdateLastSent(id) {
+  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, {
+    method: "PATCH", headers: sbHeaders,
+    body: JSON.stringify({ last_sent: new Date().toISOString() })
   });
 }
 
@@ -187,7 +195,7 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   );
 }
 
-function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPrice, loadingId, tgSt }) {
+function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPrice, loadingId, tgSt, onCooldown }) {
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ ...set });
   const [manualPrice, setManualPrice] = useState("");
@@ -241,7 +249,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PROM 90D</div>
               <input value={editData.avg90 || ""} onChange={e => setEditData({ ...editData, avg90: e.target.value })} type="number" style={inp} /></div>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MÍN 90D</div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MÍN</div>
               <input value={editData.min90 || ""} onChange={e => setEditData({ ...editData, min90: e.target.value })} type="number" style={inp} /></div>
           </div>
           <div><div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>NOTA</div>
@@ -273,9 +281,9 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             <button onClick={onCheck} disabled={isLoading} style={{ background: "#1e1e1e", color: "#bbb", border: "1px solid #333", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {isLoading ? "…" : "↻"}</button>
             {d?.found && d.price && (
-              <button onClick={onSend} disabled={tgSt === "sending"}
-                style={{ background: tgSt === "sent" ? "#0a2a10" : tgSt === "error" ? "#2a0a0a" : hasAlert ? "#0a1825" : "#1a1a1a", color: tgSt === "sent" ? "#2ecc71" : tgSt === "error" ? "#ff5555" : hasAlert ? "#2AABEE" : "#777", border: `1px solid ${tgSt === "sent" ? "#1a4a2a" : tgSt === "error" ? "#4a1a1a" : hasAlert ? "#1a3a52" : "#333"}`, width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {tgSt === "sent" ? "✓" : tgSt === "sending" ? "…" : tgSt === "error" ? "✗" : "✈"}</button>
+              <button onClick={onSend} disabled={tgSt === "sending" || onCooldown}
+                style={{ background: tgSt === "sent" ? "#0a2a10" : tgSt === "error" ? "#2a0a0a" : onCooldown ? "#1a1a1a" : hasAlert ? "#0a1825" : "#1a1a1a", color: tgSt === "sent" ? "#2ecc71" : tgSt === "error" ? "#ff5555" : onCooldown ? "#444" : hasAlert ? "#2AABEE" : "#777", border: `1px solid ${tgSt === "sent" ? "#1a4a2a" : tgSt === "error" ? "#4a1a1a" : onCooldown ? "#2a2a2a" : hasAlert ? "#1a3a52" : "#333"}`, width: 36, height: 36, borderRadius: 8, fontSize: onCooldown ? 10 : 16, cursor: onCooldown ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {tgSt === "sent" ? "✓" : tgSt === "sending" ? "…" : tgSt === "error" ? "✗" : onCooldown ? "⏳" : "✈"}</button>
             )}
             <button onClick={onRemove} style={{ background: "#2a1010", color: "#cc4444", border: "1px solid #441a1a", width: 36, height: 36, borderRadius: 8, fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           </div>
@@ -444,12 +452,20 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     await sbUpdatePriceData(id, priceObj);
   };
 
+  const isOnCooldown = (set) => {
+    if (!set.lastSent) return false;
+    const daysSince = (Date.now() - new Date(set.lastSent)) / (1000 * 60 * 60 * 24);
+    return daysSince < 4;
+  };
+
   const handleSend = async (set, d) => {
     if (!tgConfig.botToken || !tgConfig.chatId) { setShowTgConfig(true); setPreview(null); return; }
     setSending(true);
     setTgStatus(s => ({ ...s, [set.id]: "sending" }));
     try {
       await sendToTelegram(tgConfig.botToken, tgConfig.chatId, set, d);
+      await sbUpdateLastSent(set.id);
+      setSets(prev => prev.map(s => s.id === set.id ? { ...s, lastSent: new Date().toISOString() } : s));
       setTgStatus(s => ({ ...s, [set.id]: "sent" }));
       setSentIds(prev => new Set([...prev, set.id]));
       setTimeout(() => setTgStatus(s => { const n = { ...s }; delete n[set.id]; return n; }), 4000);
@@ -549,7 +565,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PROM 90D</div>
                     <input value={newSet.avg90} onChange={e => setNewSet({ ...newSet, avg90: e.target.value })} type="number" style={inp} /></div>
-                  <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MÍN 90D</div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MÍN</div>
                     <input value={newSet.min90} onChange={e => setNewSet({ ...newSet, min90: e.target.value })} type="number" style={inp} /></div>
                 </div>
                 <div><div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOTA</div>
@@ -590,6 +606,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
                 onCheck={() => checkPrice(set)} onSend={() => setPreview({ set, d: priceData[set.id] })}
                 onRemove={() => removeSet(set.id)} onEdit={editSet}
                 onManualPrice={(priceObj) => setManualPrice(set.id, priceObj)}
+                onCooldown={isOnCooldown(set)}
               />
             ))}
             {sets.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>NO HAY SETS — AGREGA UNO ARRIBA</div>}
