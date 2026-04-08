@@ -1053,7 +1053,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
           <div style={{ padding: 60, textAlign: "center", color: "#555", fontSize: 12, letterSpacing: 2 }}>CARGANDO SETS…</div>
         ) : (
           <div className="cards-grid">
-            filteredSets.map(set => (
+            {filteredSets.map(set => (
               <SetCard
                 key={set.id}
                 set={set}
