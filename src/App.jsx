@@ -856,7 +856,17 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
   const alertCount = sets.filter(s => isAlert(s, priceData[s.id])).length;
   const tgReady = !!(tgConfig.botToken && tgConfig.chatId);
+  const filteredSets = sets.filter((set) => {
+  const term = searchTerm.trim().toLowerCase();
+  if (!term) return true;
 
+  return (
+    (set.name || "").toLowerCase().includes(term) ||
+    (set.sku || "").toLowerCase().includes(term) ||
+    (set.asin || "").toLowerCase().includes(term)
+  );
+});
+  
   const inp = {
     width: "100%",
     background: "#1a1a1a",
@@ -1017,12 +1027,33 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         </div>
       </div>
 
+<div style={{ padding: "16px 24px 0 24px" }}>
+  <div className="cards-inner">
+    <input
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      placeholder="Buscar por nombre, SKU o ASIN..."
+      style={{
+        width: "100%",
+        background: "#111",
+        border: "1px solid #222",
+        color: "#e0e0e0",
+        padding: "12px 14px",
+        borderRadius: 10,
+        fontFamily: "monospace",
+        fontSize: 13,
+        outline: "none"
+      }}
+    />
+  </div>
+</div>
+      
       <div className="cards-inner">
         {dbLoading ? (
           <div style={{ padding: 60, textAlign: "center", color: "#555", fontSize: 12, letterSpacing: 2 }}>CARGANDO SETS…</div>
         ) : (
           <div className="cards-grid">
-            {sets.map(set => (
+            filteredSets.map(set => (
               <SetCard
                 key={set.id}
                 set={set}
@@ -1038,11 +1069,11 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
                 onCooldown={isOnCooldown(set)}
               />
             ))}
-            {sets.length === 0 && (
-              <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>
-                NO HAY SETS — AGREGA UNO ARRIBA
-              </div>
-            )}
+            {filteredSets.length === 0 && (
+  <div style={{ padding: 40, textAlign: "center", color: "#333", fontSize: 12, letterSpacing: 2 }}>
+    {sets.length === 0 ? "NO HAY SETS — AGREGA UNO ARRIBA" : "NO SE ENCONTRARON RESULTADOS"}
+  </div>
+)}
           </div>
         )}
       </div>
