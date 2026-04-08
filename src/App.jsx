@@ -600,6 +600,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 export default function LEGOTracker() {
   const [sets, setSets] = useState([]);
   const [priceData, setPriceData] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
   const [loadingId, setLoadingId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
