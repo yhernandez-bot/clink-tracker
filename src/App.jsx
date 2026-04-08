@@ -465,7 +465,21 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   return (
     <div style={{ background: hasAlert ? "rgba(46,204,113,0.06)" : "#111", border: `1px solid ${hasAlert ? "#2ecc7155" : "#1e1e1e"}`, borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
-      {set.img && <img src={set.img} alt={set.name} style={{ width: "100%", maxHeight: 140, objectFit: "cover", display: "block" }} onError={e => e.target.style.display = "none"} />}
+     {set.img && (
+  <img
+    src={set.img}
+    alt={set.name}
+    style={{
+      width: "100%",
+      height: 220,
+      objectFit: "contain",
+      display: "block",
+      background: "#0b0b0b",
+      padding: 8
+    }}
+    onError={e => e.target.style.display = "none"}
+  />
+)}
       <div style={{ padding: 16 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
