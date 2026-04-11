@@ -17,17 +17,30 @@ async function sbGetSets() {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/sets?order=id`, { headers: sbHeaders });
   const data = await r.json();
   return data.map(s => ({
-    id: s.id, name: s.name, sku: s.sku, asin: s.asin || "", img: s.img || "",
-    minDiscount: s.min_discount || 30, avg90: s.avg90, min90: s.min90, notes: s.notes || "",
+    id: s.id,
+    name: s.name,
+    sku: s.sku,
+    asin: s.asin || "",
+    img: s.img || "",
+    minDiscount: s.min_discount || 30,
+    avg90: s.avg90,
+    min90: s.min90,
+    notes: s.notes || "",
     originalPrice: s.original_price || null,
     lastSent: s.last_sent || null,
-    priceData: s.price_data || null
+    priceData: s.price_data || null,
+    retiringYear: s.retiring_year || "",
+    retiringMonth: s.retiring_month || "",
+    retiringStatus: s.retiring_status || "",
+    retiringSource: s.retiring_source || "",
+    retiringSentAt: s.retiring_sent_at || null
   }));
 }
 
 async function sbAddSet(set) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/sets`, {
-    method: "POST", headers: sbHeaders,
+    method: "POST",
+    headers: sbHeaders,
     body: JSON.stringify({
       name: set.name,
       sku: set.sku,
@@ -37,7 +50,11 @@ async function sbAddSet(set) {
       avg90: set.avg90,
       min90: set.min90,
       notes: set.notes,
-      original_price: set.originalPrice || null
+      original_price: set.originalPrice || null,
+      retiring_year: set.retiringYear ? parseInt(set.retiringYear) : null,
+      retiring_month: set.retiringMonth ? parseInt(set.retiringMonth) : null,
+      retiring_status: set.retiringStatus || null,
+      retiring_source: set.retiringSource || null
     })
   });
   const data = await r.json();
@@ -46,7 +63,8 @@ async function sbAddSet(set) {
 
 async function sbUpdateSet(set) {
   await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${set.id}`, {
-    method: "PATCH", headers: sbHeaders,
+    method: "PATCH",
+    headers: sbHeaders,
     body: JSON.stringify({
       name: set.name,
       sku: set.sku,
@@ -56,7 +74,11 @@ async function sbUpdateSet(set) {
       avg90: set.avg90,
       min90: set.min90,
       notes: set.notes,
-      original_price: set.originalPrice || null
+      original_price: set.originalPrice || null,
+      retiring_year: set.retiringYear ? parseInt(set.retiringYear) : null,
+      retiring_month: set.retiringMonth ? parseInt(set.retiringMonth) : null,
+      retiring_status: set.retiringStatus || null,
+      retiring_source: set.retiringSource || null
     })
   });
 }
@@ -438,19 +460,71 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>NOTA</div>
             <input value={editData.notes || ""} onChange={e => setEditData({ ...editData, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} />
           </div>
+          <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+  <div style={{ fontSize: 9, color: "#666", marginBottom: 8 }}>RETIRED SOON</div>
+
+  <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>AÑO</div>
+      <input
+        value={editData.retiringYear || ""}
+        onChange={e => setEditData({ ...editData, retiringYear: e.target.value })}
+        type="number"
+        placeholder="2026"
+        style={inp}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MES</div>
+      <input
+        value={editData.retiringMonth || ""}
+        onChange={e => setEditData({ ...editData, retiringMonth: e.target.value })}
+        type="number"
+        min="1"
+        max="12"
+        placeholder="12"
+        style={inp}
+      />
+    </div>
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>STATUS</div>
+    <input
+      value={editData.retiringStatus || ""}
+      onChange={e => setEditData({ ...editData, retiringStatus: e.target.value })}
+      placeholder="tracked o confirmed"
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>SOURCE</div>
+    <input
+      value={editData.retiringSource || ""}
+      onChange={e => setEditData({ ...editData, retiringSource: e.target.value })}
+      placeholder="brickset"
+      style={inp}
+    />
+  </div>
+</div>
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
               CANCELAR
             </button>
             <button
               onClick={() => {
-                onEdit({
-                  ...editData,
-                  minDiscount: parseInt(editData.minDiscount) || 30,
-                  avg90: parseFloat(editData.avg90) || null,
-                  min90: parseFloat(editData.min90) || null,
-                  originalPrice: parseFloat(editData.originalPrice) || null
-                });
+               onEdit({
+  ...editData,
+  minDiscount: parseInt(editData.minDiscount) || 30,
+  avg90: parseFloat(editData.avg90) || null,
+  min90: parseFloat(editData.min90) || null,
+  originalPrice: parseFloat(editData.originalPrice) || null,
+  retiringYear: editData.retiringYear || "",
+  retiringMonth: editData.retiringMonth || "",
+  retiringStatus: editData.retiringStatus || "",
+  retiringSource: editData.retiringSource || ""
+});
                 setEditing(false);
               }}
               style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}
@@ -607,16 +681,20 @@ export default function LEGOTracker() {
   const [showTgConfig, setShowTgConfig] = useState(false);
   const [tgConfig, setTgConfig] = useState({ botToken: "", chatId: "" });
   const [newSet, setNewSet] = useState({
-    name: "",
-    sku: "",
-    minDiscount: "30",
-    asin: "",
-    img: "",
-    avg90: "",
-    min90: "",
-    notes: "",
-    originalPrice: ""
-  });
+  name: "",
+  sku: "",
+  minDiscount: "30",
+  asin: "",
+  img: "",
+  avg90: "",
+  min90: "",
+  notes: "",
+  originalPrice: "",
+  retiringYear: "",
+  retiringMonth: "",
+  retiringStatus: "",
+  retiringSource: ""
+});
   const [globalLoading, setGlobalLoading] = useState(false);
   const [lastCheck, setLastCheck] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -751,28 +829,37 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     });
 
     if (created) {
-      setSets(prev => [
-        ...prev,
-        {
-          ...created,
-          minDiscount: created.min_discount,
-          originalPrice: created.original_price,
-          priceData: null
-        }
-      ]);
+  setSets(prev => [
+    ...prev,
+    {
+      ...created,
+      minDiscount: created.min_discount,
+      originalPrice: created.original_price,
+      priceData: null,
+      retiringYear: created.retiring_year || "",
+      retiringMonth: created.retiring_month || "",
+      retiringStatus: created.retiring_status || "",
+      retiringSource: created.retiring_source || "",
+      retiringSentAt: created.retiring_sent_at || null
     }
+  ]);
+}
 
     setNewSet({
-      name: "",
-      sku: "",
-      minDiscount: "30",
-      asin: "",
-      img: "",
-      avg90: "",
-      min90: "",
-      notes: "",
-      originalPrice: ""
-    });
+  name: "",
+  sku: "",
+  minDiscount: "30",
+  asin: "",
+  img: "",
+  avg90: "",
+  min90: "",
+  notes: "",
+  originalPrice: "",
+  retiringYear: "",
+  retiringMonth: "",
+  retiringStatus: "",
+  retiringSource: ""
+});
     setShowAdd(false);
     setShowExtra(false);
   };
@@ -999,6 +1086,54 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
                   <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOTA</div>
                   <input value={newSet.notes} onChange={e => setNewSet({ ...newSet, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} />
                 </div>
+                <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+  <div style={{ fontSize: 10, color: "#777", marginBottom: 8 }}>RETIRED SOON</div>
+
+  <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>AÑO</div>
+      <input
+        value={newSet.retiringYear}
+        onChange={e => setNewSet({ ...newSet, retiringYear: e.target.value })}
+        placeholder="2026"
+        type="number"
+        style={inp}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MES</div>
+      <input
+        value={newSet.retiringMonth}
+        onChange={e => setNewSet({ ...newSet, retiringMonth: e.target.value })}
+        placeholder="12"
+        type="number"
+        min="1"
+        max="12"
+        style={inp}
+      />
+    </div>
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>STATUS</div>
+    <input
+      value={newSet.retiringStatus}
+      onChange={e => setNewSet({ ...newSet, retiringStatus: e.target.value })}
+      placeholder="tracked o confirmed"
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>SOURCE</div>
+    <input
+      value={newSet.retiringSource}
+      onChange={e => setNewSet({ ...newSet, retiringSource: e.target.value })}
+      placeholder="brickset"
+      style={inp}
+    />
+  </div>
+</div>
               </>
             )}
 
