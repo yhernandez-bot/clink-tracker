@@ -1035,13 +1035,6 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
               {showAdd ? "✕ CANCELAR" : "+ SET"}
             </button>
 
-            <button
-              onClick={checkAll}
-              disabled={globalLoading}
-              style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: "10px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: globalLoading ? 0.5 : 1 }}
-            >
-              {globalLoading ? "BUSCANDO..." : "▶ REVISAR TODOS"}
-            </button>
           </div>
 
           {alertCount > 0 && tgReady && (
