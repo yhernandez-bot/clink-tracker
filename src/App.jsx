@@ -696,6 +696,7 @@ export default function LEGOTracker() {
   const [sets, setSets] = useState([]);
   const [priceData, setPriceData] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [showRetiringOnly, setShowRetiringOnly] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
@@ -966,13 +967,17 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
   const tgReady = !!(tgConfig.botToken && tgConfig.chatId);
   const filteredSets = sets.filter((set) => {
   const term = searchTerm.trim().toLowerCase();
-  if (!term) return true;
 
-  return (
+  const matchesSearch =
+    !term ||
     (set.name || "").toLowerCase().includes(term) ||
     (set.sku || "").toLowerCase().includes(term) ||
-    (set.asin || "").toLowerCase().includes(term)
-  );
+    (set.asin || "").toLowerCase().includes(term);
+
+  const matchesRetiring =
+    !showRetiringOnly || (set.retiringYear && set.retiringMonth);
+
+  return matchesSearch && matchesRetiring;
 });
   
   const inp = {
@@ -1201,6 +1206,25 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         outline: "none"
       }}
     />
+  </div>
+</div>
+      <div style={{ padding: "8px 24px 0 24px" }}>
+  <div className="cards-inner">
+    <button
+      onClick={() => setShowRetiringOnly(v => !v)}
+      style={{
+        background: showRetiringOnly ? "#3a2a0a" : "#111",
+        color: showRetiringOnly ? "#f0c15a" : "#888",
+        border: `1px solid ${showRetiringOnly ? "#5a4310" : "#222"}`,
+        padding: "10px 14px",
+        borderRadius: 10,
+        fontFamily: "monospace",
+        fontSize: 12,
+        cursor: "pointer"
+      }}
+    >
+      {showRetiringOnly ? "⏳ MOSTRANDO SOLO RETIRED SOON" : "⏳ FILTRAR SOLO RETIRED SOON"}
+    </button>
   </div>
 </div>
       
