@@ -559,10 +559,31 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           <div onClick={() => setEditing(true)} style={{ cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 10, flex: 1, minWidth: 0 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusColor, flexShrink: 0, marginTop: 5, boxShadow: hasAlert ? "0 0 8px #2ecc71" : "none", display: "inline-block", animation: isLoading ? "pulse 1s infinite" : "none" }} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#e0e0e0", lineHeight: 1.3 }}>{set.name}</div>
-              <div style={{ fontSize: 11, color: "#555", marginTop: 3 }}>
-                #{set.sku} · caída fuerte ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span>
-              </div>
+  <div style={{ fontSize: 14, fontWeight: 700, color: hasAlert ? "#2ecc71" : "#e0e0e0", lineHeight: 1.3 }}>
+    {set.name}
+  </div>
+
+  {set.retiringYear && set.retiringMonth && (
+    <div style={{ marginTop: 6 }}>
+      <span
+        style={{
+          background: "#3a2a0a",
+          color: "#f0c15a",
+          fontSize: 10,
+          padding: "3px 8px",
+          borderRadius: 999,
+          letterSpacing: 1,
+          fontWeight: 700
+        }}
+      >
+        ⏳ RETIRA {set.retiringMonth}/{set.retiringYear}
+      </span>
+    </div>
+  )}
+
+  <div style={{ fontSize: 11, color: "#555", marginTop: 6 }}>
+    #{set.sku} · caída fuerte ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span>
+  </div>
               {d?.error && <div style={{ fontSize: 11, color: "#ff5555", marginTop: 2 }}>⚠ Error al buscar precio</div>}
             </div>
           </div>
