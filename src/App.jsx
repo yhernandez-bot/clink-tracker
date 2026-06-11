@@ -592,7 +592,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   retiringYear: editData.retiringYear || "",
   retiringMonth: editData.retiringMonth || "",
   retiringStatus: editData.retiringStatus || "",
-  retiringSource: editData.retiringSource || ""
+  retiringSource: editData.retiringSource || "",
   releaseYear: editData.releaseYear || "",
   releaseMonth: editData.releaseMonth || "",
   releaseStatus: editData.releaseStatus || "",
