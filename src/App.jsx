@@ -29,11 +29,18 @@ async function sbGetSets() {
     originalPrice: s.original_price || null,
     lastSent: s.last_sent || null,
     priceData: s.price_data || null,
+
     retiringYear: s.retiring_year || "",
     retiringMonth: s.retiring_month || "",
     retiringStatus: s.retiring_status || "",
     retiringSource: s.retiring_source || "",
-    retiringSentAt: s.retiring_sent_at || null
+    retiringSentAt: s.retiring_sent_at || null,
+
+    releaseYear: s.release_year || "",
+    releaseMonth: s.release_month || "",
+    releaseStatus: s.release_status || "",
+    releaseSource: s.release_source || "",
+    releaseSentAt: s.release_sent_at || null
   }));
 }
 
@@ -51,10 +58,16 @@ async function sbAddSet(set) {
       min90: set.min90,
       notes: set.notes,
       original_price: set.originalPrice || null,
+
       retiring_year: set.retiringYear ? parseInt(set.retiringYear) : null,
       retiring_month: set.retiringMonth ? parseInt(set.retiringMonth) : null,
       retiring_status: set.retiringStatus || null,
-      retiring_source: set.retiringSource || null
+      retiring_source: set.retiringSource || null,
+
+      release_year: set.releaseYear ? parseInt(set.releaseYear) : null,
+      release_month: set.releaseMonth ? parseInt(set.releaseMonth) : null,
+      release_status: set.releaseStatus || null,
+      release_source: set.releaseSource || null
     })
   });
   const data = await r.json();
@@ -75,10 +88,16 @@ async function sbUpdateSet(set) {
       min90: set.min90,
       notes: set.notes,
       original_price: set.originalPrice || null,
+
       retiring_year: set.retiringYear ? parseInt(set.retiringYear) : null,
       retiring_month: set.retiringMonth ? parseInt(set.retiringMonth) : null,
       retiring_status: set.retiringStatus || null,
-      retiring_source: set.retiringSource || null
+      retiring_source: set.retiringSource || null,
+
+      release_year: set.releaseYear ? parseInt(set.releaseYear) : null,
+      release_month: set.releaseMonth ? parseInt(set.releaseMonth) : null,
+      release_status: set.releaseStatus || null,
+      release_source: set.releaseSource || null
     })
   });
 }
@@ -508,6 +527,56 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
     />
   </div>
 </div>
+
+<div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+  <div style={{ fontSize: 9, color: "#666", marginBottom: 8 }}>LAUNCHES</div>
+
+  <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>AÑO</div>
+      <input
+        value={editData.releaseYear || ""}
+        onChange={e => setEditData({ ...editData, releaseYear: e.target.value })}
+        type="number"
+        placeholder="2026"
+        style={inp}
+      />
+    </div>
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>MES</div>
+      <input
+        value={editData.releaseMonth || ""}
+        onChange={e => setEditData({ ...editData, releaseMonth: e.target.value })}
+        type="number"
+        min="1"
+        max="12"
+        placeholder="8"
+        style={inp}
+      />
+    </div>
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>STATUS</div>
+    <input
+      value={editData.releaseStatus || ""}
+      onChange={e => setEditData({ ...editData, releaseStatus: e.target.value })}
+      placeholder="tracked o confirmed"
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>SOURCE</div>
+    <input
+      value={editData.releaseSource || ""}
+      onChange={e => setEditData({ ...editData, releaseSource: e.target.value })}
+      placeholder="lego o brickset"
+      style={inp}
+    />
+  </div>
+</div>
+          
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
               CANCELAR
@@ -524,6 +593,10 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   retiringMonth: editData.retiringMonth || "",
   retiringStatus: editData.retiringStatus || "",
   retiringSource: editData.retiringSource || ""
+  releaseYear: editData.releaseYear || "",
+  releaseMonth: editData.releaseMonth || "",
+  releaseStatus: editData.releaseStatus || "",
+  releaseSource: editData.releaseSource || ""               
 });
                 setEditing(false);
               }}
@@ -580,6 +653,24 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
       </span>
     </div>
   )}
+
+  {set.releaseYear && set.releaseMonth && (
+  <div style={{ marginTop: 6 }}>
+    <span
+      style={{
+        background: "#0a2a3a",
+        color: "#7fe7ff",
+        fontSize: 10,
+        padding: "3px 8px",
+        borderRadius: 999,
+        letterSpacing: 1,
+        fontWeight: 700
+      }}
+    >
+      🆕 SALE {set.releaseMonth}/{set.releaseYear}
+    </span>
+  </div>
+)}
 
   <div style={{ fontSize: 11, color: "#555", marginTop: 6 }}>
     #{set.sku} · caída fuerte ≥{set.minDiscount}% · {timeAgo(d?.checkedAt)} · <span style={{ color: "#444" }}>toca para editar</span>
@@ -715,7 +806,11 @@ export default function LEGOTracker() {
   retiringYear: "",
   retiringMonth: "",
   retiringStatus: "",
-  retiringSource: ""
+  retiringSource: "",
+  releaseYear: "",
+  releaseMonth: "",
+  releaseStatus: "",
+  releaseSource: ""
 });
   const [globalLoading, setGlobalLoading] = useState(false);
   const [lastCheck, setLastCheck] = useState(null);
@@ -862,7 +957,12 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
       retiringMonth: created.retiring_month || "",
       retiringStatus: created.retiring_status || "",
       retiringSource: created.retiring_source || "",
-      retiringSentAt: created.retiring_sent_at || null
+      retiringSentAt: created.retiring_sent_at || null,
+      releaseYear: created.release_year || "",
+      releaseMonth: created.release_month || "",
+      releaseStatus: created.release_status || "",
+      releaseSource: created.release_source || "",
+      releaseSentAt: created.release_sent_at || null
     }
   ]);
 }
@@ -880,7 +980,11 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
   retiringYear: "",
   retiringMonth: "",
   retiringStatus: "",
-  retiringSource: ""
+  retiringSource: "",
+  releaseYear: "",
+  releaseMonth: "",
+  releaseStatus: "",
+  releaseSource: ""
 });
     setShowAdd(false);
     setShowExtra(false);
@@ -1086,75 +1190,127 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
             </button>
 
             {showExtra && (
-              <>
-                <div>
-                  <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PRECIO ORIGINAL $MXN</div>
-                  <input value={newSet.originalPrice} onChange={e => setNewSet({ ...newSet, originalPrice: e.target.value })} placeholder="1799" type="number" style={inp} />
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PROM 90D</div>
-                    <input value={newSet.avg90} onChange={e => setNewSet({ ...newSet, avg90: e.target.value })} type="number" style={inp} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MÍN</div>
-                    <input value={newSet.min90} onChange={e => setNewSet({ ...newSet, min90: e.target.value })} type="number" style={inp} />
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOTA</div>
-                  <input value={newSet.notes} onChange={e => setNewSet({ ...newSet, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} />
-                </div>
-                <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
-  <div style={{ fontSize: 10, color: "#777", marginBottom: 8 }}>RETIRED SOON</div>
-
-  <div style={{ display: "flex", gap: 8 }}>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>AÑO</div>
-      <input
-        value={newSet.retiringYear}
-        onChange={e => setNewSet({ ...newSet, retiringYear: e.target.value })}
-        placeholder="2026"
-        type="number"
-        style={inp}
-      />
+  <>
+    <div>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PRECIO ORIGINAL $MXN</div>
+      <input value={newSet.originalPrice} onChange={e => setNewSet({ ...newSet, originalPrice: e.target.value })} placeholder="1799" type="number" style={inp} />
     </div>
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MES</div>
-      <input
-        value={newSet.retiringMonth}
-        onChange={e => setNewSet({ ...newSet, retiringMonth: e.target.value })}
-        placeholder="12"
-        type="number"
-        min="1"
-        max="12"
-        style={inp}
-      />
+
+    <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PROM 90D</div>
+        <input value={newSet.avg90} onChange={e => setNewSet({ ...newSet, avg90: e.target.value })} type="number" style={inp} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MÍN</div>
+        <input value={newSet.min90} onChange={e => setNewSet({ ...newSet, min90: e.target.value })} type="number" style={inp} />
+      </div>
     </div>
-  </div>
 
-  <div style={{ marginTop: 8 }}>
-    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>STATUS</div>
-    <input
-      value={newSet.retiringStatus}
-      onChange={e => setNewSet({ ...newSet, retiringStatus: e.target.value })}
-      placeholder="tracked o confirmed"
-      style={inp}
-    />
-  </div>
+    <div>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOTA</div>
+      <input value={newSet.notes} onChange={e => setNewSet({ ...newSet, notes: e.target.value })} placeholder="Rara vez baja de $4k" style={inp} />
+    </div>
 
-  <div style={{ marginTop: 8 }}>
-    <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>SOURCE</div>
-    <input
-      value={newSet.retiringSource}
-      onChange={e => setNewSet({ ...newSet, retiringSource: e.target.value })}
-      placeholder="brickset"
-      style={inp}
-    />
-  </div>
-</div>
-              </>
-            )}
+    <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 8 }}>RETIRED SOON</div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>AÑO</div>
+          <input
+            value={newSet.retiringYear}
+            onChange={e => setNewSet({ ...newSet, retiringYear: e.target.value })}
+            placeholder="2026"
+            type="number"
+            style={inp}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MES</div>
+          <input
+            value={newSet.retiringMonth}
+            onChange={e => setNewSet({ ...newSet, retiringMonth: e.target.value })}
+            placeholder="12"
+            type="number"
+            min="1"
+            max="12"
+            style={inp}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>STATUS</div>
+        <input
+          value={newSet.retiringStatus}
+          onChange={e => setNewSet({ ...newSet, retiringStatus: e.target.value })}
+          placeholder="tracked o confirmed"
+          style={inp}
+        />
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>SOURCE</div>
+        <input
+          value={newSet.retiringSource}
+          onChange={e => setNewSet({ ...newSet, retiringSource: e.target.value })}
+          placeholder="brickset"
+          style={inp}
+        />
+      </div>
+    </div>
+
+    <div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+      <div style={{ fontSize: 10, color: "#777", marginBottom: 8 }}>LAUNCHES</div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>AÑO</div>
+          <input
+            value={newSet.releaseYear}
+            onChange={e => setNewSet({ ...newSet, releaseYear: e.target.value })}
+            placeholder="2026"
+            type="number"
+            style={inp}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MES</div>
+          <input
+            value={newSet.releaseMonth}
+            onChange={e => setNewSet({ ...newSet, releaseMonth: e.target.value })}
+            placeholder="8"
+            type="number"
+            min="1"
+            max="12"
+            style={inp}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>STATUS</div>
+        <input
+          value={newSet.releaseStatus}
+          onChange={e => setNewSet({ ...newSet, releaseStatus: e.target.value })}
+          placeholder="tracked o confirmed"
+          style={inp}
+        />
+      </div>
+
+      <div style={{ marginTop: 8 }}>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>SOURCE</div>
+        <input
+          value={newSet.releaseSource}
+          onChange={e => setNewSet({ ...newSet, releaseSource: e.target.value })}
+          placeholder="lego o brickset"
+          style={inp}
+        />
+      </div>
+    </div>
+  </>
+)}
 
             <button onClick={addSet} style={{ background: "#f0a500", color: "#000", border: "none", padding: 12, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}>
               GUARDAR SET
