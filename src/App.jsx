@@ -472,9 +472,23 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
             <div style={{ fontSize: 14, color: "#e8e8e8", whiteSpace: "pre-line", lineHeight: 1.7, fontFamily: "system-ui" }}>
               {text}
             </div>
-            <div style={{ marginTop: 12, background: "#2a3a2a", borderRadius: 6, padding: "8px 14px", display: "inline-block", fontSize: 13, color: "#8bc89a" }}>
-             {ctaLabel}
-            </div>
+            <a
+  href={buildCaption(set, d).url}
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{
+    marginTop: 12,
+    background: "#2a3a2a",
+    borderRadius: 6,
+    padding: "8px 14px",
+    display: "inline-block",
+    fontSize: 13,
+    color: "#8bc89a",
+    textDecoration: "none"
+  }}
+>
+  {ctaLabel}
+</a>
           </div>
         </div>
         {img && <div style={{ fontSize: 10, color: "#555", marginBottom: 10 }}>📷 Se enviará con imagen</div>}
