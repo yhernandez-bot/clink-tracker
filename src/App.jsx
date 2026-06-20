@@ -40,7 +40,13 @@ async function sbGetSets() {
     releaseMonth: s.release_month || "",
     releaseStatus: s.release_status || "",
     releaseSource: s.release_source || "",
-    releaseSentAt: s.release_sent_at || null
+    releaseSentAt: s.release_sent_at || null,
+
+    externalStore: s.external_store || "",
+    externalPrice: s.external_price || "",
+    externalUrl: s.external_url || "",
+    externalCheckedAt: s.external_checked_at || null,
+    externalNote: s.external_note || ""
   }));
 }
 
@@ -67,7 +73,13 @@ async function sbAddSet(set) {
       release_year: set.releaseYear ? parseInt(set.releaseYear) : null,
       release_month: set.releaseMonth ? parseInt(set.releaseMonth) : null,
       release_status: set.releaseStatus || null,
-      release_source: set.releaseSource || null
+      release_source: set.releaseSource || null,
+
+      external_store: set.externalStore || null,
+      external_price: set.externalPrice ? parseFloat(set.externalPrice) : null,
+      external_url: set.externalUrl || null,
+      external_checked_at: set.externalCheckedAt || null,
+      external_note: set.externalNote || null
     })
   });
   const data = await r.json();
@@ -97,7 +109,13 @@ async function sbUpdateSet(set) {
       release_year: set.releaseYear ? parseInt(set.releaseYear) : null,
       release_month: set.releaseMonth ? parseInt(set.releaseMonth) : null,
       release_status: set.releaseStatus || null,
-      release_source: set.releaseSource || null
+      release_source: set.releaseSource || null,
+
+      external_store: set.externalStore || null,
+      external_price: set.externalPrice ? parseFloat(set.externalPrice) : null,
+      external_url: set.externalUrl || null,
+      external_checked_at: set.externalCheckedAt || null,
+      external_note: set.externalNote || null
     })
   });
 }
@@ -583,6 +601,51 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
     />
   </div>
 </div>
+
+<div style={{ marginTop: 4, paddingTop: 8, borderTop: "1px solid #222" }}>
+  <div style={{ fontSize: 9, color: "#666", marginBottom: 8 }}>OTRA TIENDA</div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>TIENDA</div>
+    <input
+      value={editData.externalStore || ""}
+      onChange={e => setEditData({ ...editData, externalStore: e.target.value })}
+      placeholder="walmart o lego"
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>PRECIO</div>
+    <input
+      value={editData.externalPrice || ""}
+      onChange={e => setEditData({ ...editData, externalPrice: e.target.value })}
+      type="number"
+      placeholder="1799"
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>URL</div>
+    <input
+      value={editData.externalUrl || ""}
+      onChange={e => setEditData({ ...editData, externalUrl: e.target.value })}
+      placeholder="https://..."
+      style={inp}
+    />
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <div style={{ fontSize: 9, color: "#666", marginBottom: 3 }}>NOTA</div>
+    <input
+      value={editData.externalNote || ""}
+      onChange={e => setEditData({ ...editData, externalNote: e.target.value })}
+      placeholder="Mejor que Amazon hoy"
+      style={inp}
+    />
+  </div>
+</div>
           
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#1a1a1a", color: "#888", border: "1px solid #333", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}>
@@ -590,23 +653,28 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
             </button>
             <button
               onClick={() => {
-               onEdit({
-  ...editData,
-  minDiscount: parseInt(editData.minDiscount) || 30,
-  avg90: parseFloat(editData.avg90) || null,
-  min90: parseFloat(editData.min90) || null,
-  originalPrice: parseFloat(editData.originalPrice) || null,
-  retiringYear: editData.retiringYear || "",
-  retiringMonth: editData.retiringMonth || "",
-  retiringStatus: editData.retiringStatus || "",
-  retiringSource: editData.retiringSource || "",
-  releaseYear: editData.releaseYear || "",
-  releaseMonth: editData.releaseMonth || "",
-  releaseStatus: editData.releaseStatus || "",
-  releaseSource: editData.releaseSource || ""               
-});
-                setEditing(false);
-              }}
+  onEdit({
+    ...editData,
+    minDiscount: parseInt(editData.minDiscount) || 30,
+    avg90: parseFloat(editData.avg90) || null,
+    min90: parseFloat(editData.min90) || null,
+    originalPrice: parseFloat(editData.originalPrice) || null,
+    retiringYear: editData.retiringYear || "",
+    retiringMonth: editData.retiringMonth || "",
+    retiringStatus: editData.retiringStatus || "",
+    retiringSource: editData.retiringSource || "",
+    releaseYear: editData.releaseYear || "",
+    releaseMonth: editData.releaseMonth || "",
+    releaseStatus: editData.releaseStatus || "",
+    releaseSource: editData.releaseSource || "",
+    externalStore: editData.externalStore || "",
+    externalPrice: editData.externalPrice || "",
+    externalUrl: editData.externalUrl || "",
+    externalCheckedAt: editData.externalPrice ? new Date().toISOString() : "",
+    externalNote: editData.externalNote || ""
+  });
+  setEditing(false);
+}}
               style={{ flex: 2, background: "#f0a500", color: "#000", border: "none", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "monospace" }}
             >
               GUARDAR
@@ -818,8 +886,14 @@ export default function LEGOTracker() {
   releaseYear: "",
   releaseMonth: "",
   releaseStatus: "",
-  releaseSource: ""
+  releaseSource: "",
+  externalStore: "",
+  externalPrice: "",
+  externalUrl: "",
+  externalCheckedAt: "",
+  externalNote: ""
 });
+
   const [globalLoading, setGlobalLoading] = useState(false);
   const [lastCheck, setLastCheck] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -970,7 +1044,12 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
       releaseMonth: created.release_month || "",
       releaseStatus: created.release_status || "",
       releaseSource: created.release_source || "",
-      releaseSentAt: created.release_sent_at || null
+      releaseSentAt: created.release_sent_at || null,
+      externalStore: created.external_store || "",
+      externalPrice: created.external_price || "",
+      externalUrl: created.external_url || "",
+      externalCheckedAt: created.external_checked_at || null,
+      externalNote: created.external_note || ""
     }
   ]);
 }
@@ -992,7 +1071,12 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
   releaseYear: "",
   releaseMonth: "",
   releaseStatus: "",
-  releaseSource: ""
+  releaseSource: "",
+  externalStore: "",
+  externalPrice: "",
+  externalUrl: "",
+  externalCheckedAt: "",
+  externalNote: ""    
 });
     setShowAdd(false);
     setShowExtra(false);
