@@ -190,6 +190,59 @@ function isAlert(set, d) {
   return disc != null && disc >= set.minDiscount;
 }
 
+function evaluateExternalDeal(set, d) {
+  const externalPrice = Number(set.externalPrice);
+  if (!externalPrice || !set.externalStore) return null;
+
+  const amazonPrice = d?.found && d?.price ? Number(d.price) : null;
+  const avg90 = set.avg90 ? Number(set.avg90) : null;
+  const min90 = set.min90 ? Number(set.min90) : null;
+
+  if (amazonPrice && externalPrice >= amazonPrice) {
+    return {
+      approved: false,
+      reason: "Amazon sigue siendo mejor precio hoy",
+      status: "reject"
+    };
+  }
+
+  const belowAvgPct = avg90
+    ? Math.round(((avg90 - externalPrice) / avg90) * 100)
+    : null;
+
+  if (min90 && externalPrice <= min90) {
+    return {
+      approved: true,
+      reason: "Debajo del mínimo 90d de Amazon",
+      status: "new_low",
+      belowAvgPct
+    };
+  }
+
+  if (belowAvgPct != null && belowAvgPct >= 8) {
+    return {
+      approved: true,
+      reason: `Caída fuerte vs promedio 90d Amazon (-${belowAvgPct}%)`,
+      status: "strong"
+    };
+  }
+
+  if (avg90 && externalPrice < avg90) {
+    return {
+      approved: true,
+      reason: "Debajo del promedio 90d de Amazon",
+      status: "good",
+      belowAvgPct
+    };
+  }
+
+  return {
+    approved: false,
+    reason: "No mejora lo suficiente contra el histórico Amazon",
+    status: "reject"
+  };
+}
+
 function buildCaption(set, d) {
   const price = d.price;
   const pct = getDiscount(d);
@@ -416,6 +469,7 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
 
   const discount = getDiscount(d);
   const hasAlert = isAlert(set, d);
+  const externalEval = evaluateExternalDeal(set, d);
   const isLoading = loadingId === set.id;
   const statusColor = { idle: "#555", loading: "#f0a500", alert: "#2ecc71", ok: "#2ecc71" }[status] || "#555";
 
@@ -848,6 +902,62 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           )}
         </div>
 
+        {externalEval && (
+  <div
+    style={{
+      marginTop: 10,
+      padding: "10px 12px",
+      borderRadius: 8,
+      background:
+        externalEval.status === "reject"
+          ? "#2a1010"
+          : externalEval.status === "new_low"
+          ? "#0f2a16"
+          : externalEval.status === "strong"
+          ? "#0f1f2a"
+          : "#1b2412",
+      border:
+        externalEval.status === "reject"
+          ? "1px solid #4a1a1a"
+          : externalEval.status === "new_low"
+          ? "1px solid #1f5a30"
+          : externalEval.status === "strong"
+          ? "1px solid #1a4a6a"
+          : "1px solid #4a5a1a",
+      color:
+        externalEval.status === "reject"
+          ? "#ff7a7a"
+          : externalEval.status === "new_low"
+          ? "#4de27a"
+          : externalEval.status === "strong"
+          ? "#7fd8ff"
+          : "#d6e96b",
+      fontSize: 11,
+      lineHeight: 1.5
+    }}
+  >
+    <div style={{ fontWeight: 700, marginBottom: 3 }}>
+      {externalEval.status === "reject"
+        ? "❌ OTRA TIENDA RECHAZADA"
+        : externalEval.status === "new_low"
+        ? "🔥 OTRA TIENDA APROBADA"
+        : externalEval.status === "strong"
+        ? "💥 OTRA TIENDA APROBADA"
+        : "✅ OTRA TIENDA APROBADA"}
+    </div>
+
+    <div>
+      {String(set.externalStore || "").toUpperCase()}: {fmtPrice(set.externalPrice)}
+    </div>
+
+    <div>{externalEval.reason}</div>
+
+    {d?.price ? <div>Amazon hoy: {fmtPrice(d.price)}</div> : null}
+    {set.avg90 ? <div>Prom 90d Amazon: {fmtPrice(set.avg90)}</div> : null}
+    {set.min90 ? <div>Mín 90d Amazon: {fmtPrice(set.min90)}</div> : null}
+  </div>
+)}
+        
         {d?.url && (
           <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginTop: 8, fontSize: 11, color: "#f0a500", textDecoration: "none", opacity: 0.7 }}>
             Ver en Amazon ↗
