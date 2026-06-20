@@ -244,29 +244,54 @@ function evaluateExternalDeal(set, d) {
 }
 
 function buildCaption(set, d) {
-  const price = d.price;
-  const pct = getDiscount(d);
-  const url = trackedUrl(set, d) || "";
-  const line2 = [fmtPrice(price), pct != null && pct > 0 ? `${discountBadge(pct)} -${pct}%` : null]
+  const externalEval = evaluateExternalDeal(set, d);
+  const useExternal = externalEval?.approved && set.externalStore && set.externalPrice;
+
+  const price = useExternal ? Number(set.externalPrice) : d.price;
+  const pct = useExternal
+    ? null
+    : getDiscount(d);
+
+  const url = useExternal
+    ? (set.externalUrl || "")
+    : (trackedUrl(set, d) || "");
+
+  const line2 = [
+    fmtPrice(price),
+    useExternal
+      ? `🏪 ${String(set.externalStore || "").toUpperCase()}`
+      : (pct != null && pct > 0 ? `${discountBadge(pct)} -${pct}%` : null)
+  ]
     .filter(Boolean)
     .join(" · ");
+
   const diffVsAvg = (set.avg90 && price)
     ? Math.round(((set.avg90 - price) / set.avg90) * 100)
     : null;
+
   const isNewLow = set.min90 && price ? price <= set.min90 : false;
   const isCaidaFuerte = diffVsAvg != null && diffVsAvg >= (set.minDiscount || 3);
   const isBuenPrecio = set.avg90 && price < (set.avg90 - 1);
+
   let tag = "";
 
-  if (isNewLow) tag = "🔥 NUEVO MÍNIMO 90D";
-  else if (isCaidaFuerte) tag = "💥 CAÍDA FUERTE";
-  else if (isBuenPrecio) tag = "✅ BUEN PRECIO";
+  if (useExternal) {
+    if (externalEval.status === "new_low") tag = "🔥 NUEVO MÍNIMO VS AMAZON";
+    else if (externalEval.status === "strong") tag = "💥 CAÍDA FUERTE VS AMAZON";
+    else if (externalEval.status === "good") tag = "✅ MEJOR QUE AMAZON";
+  } else {
+    if (isNewLow) tag = "🔥 NUEVO MÍNIMO 90D";
+    else if (isCaidaFuerte) tag = "💥 CAÍDA FUERTE";
+    else if (isBuenPrecio) tag = "✅ BUEN PRECIO";
+  }
 
   const extras = [
     tag || null,
-    set.avg90 ? `📊 Prom 90d: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
-    set.min90 ? `📉 Mín: ${fmtPrice(set.min90)}` : null,
+    set.avg90 ? `📊 Prom 90d Amazon: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
+    set.min90 ? `📉 Mín Amazon: ${fmtPrice(set.min90)}` : null,
+    useExternal && d?.price ? `🛒 Amazon hoy: ${fmtPrice(d.price)}` : null,
     set.notes ? `🧠 ${set.notes}` : null,
+    useExternal && set.externalNote ? `🏷️ ${set.externalNote}` : null
   ].filter(Boolean);
 
   return {
