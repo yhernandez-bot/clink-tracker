@@ -143,6 +143,13 @@ function canonicalUrl(asin) {
   return asin ? `https://www.amazon.com.mx/dp/${asin}` : null;
 }
 
+function trackedUrl(set, d) {
+  const directUrl = d?.url || canonicalUrl(set.asin);
+  if (!directUrl) return null;
+
+  return `https://clink-click.yayitou.workers.dev/r?slug=alert-${set.id}-${Date.now()}&url=${encodeURIComponent(directUrl)}&source=telegram&campaign=alerts_daily&post_type=alert&set_id=${set.id}`;
+}
+
 function getDiscount(d) {
   if (!d) return null;
   if (d.discount) return d.discount;
@@ -168,7 +175,7 @@ function isAlert(set, d) {
 function buildCaption(set, d) {
   const price = d.price;
   const pct = getDiscount(d);
-  const url = d.url || canonicalUrl(set.asin) || "";
+  const url = trackedUrl(set, d) || "";
   const line2 = [fmtPrice(price), pct != null && pct > 0 ? `${discountBadge(pct)} -${pct}%` : null]
     .filter(Boolean)
     .join(" · ");
