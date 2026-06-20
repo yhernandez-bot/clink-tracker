@@ -303,7 +303,15 @@ function buildCaption(set, d) {
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
   const img = set.img?.trim();
-  const reply_markup = { inline_keyboard: [[{ text: "Ver en Amazon", url }]] };
+
+  const externalEval = evaluateExternalDeal(set, d);
+  const useExternal = externalEval?.approved && set.externalStore && set.externalPrice;
+
+  const buttonLabel = useExternal
+    ? `Ver en ${String(set.externalStore || "").toUpperCase()}`
+    : "Ver en Amazon";
+
+  const reply_markup = { inline_keyboard: [[{ text: buttonLabel, url }]] };
 
   const res = await fetch(WORKER_URL, {
     method: "POST",
@@ -448,6 +456,11 @@ function TelegramConfig({ config, onSave, onClose }) {
 function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
   const { text } = buildCaption(set, d);
   const img = set.img?.trim();
+  const externalEval = evaluateExternalDeal(set, d);
+  const useExternal = externalEval?.approved && set.externalStore && set.externalPrice;
+  const ctaLabel = useExternal
+  ? `Ver en ${String(set.externalStore || "").toUpperCase()} ↗`
+  : "Ver en Amazon ↗";
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
@@ -460,7 +473,7 @@ function PreviewModal({ set, d, onSend, onClose, sending, sent }) {
               {text}
             </div>
             <div style={{ marginTop: 12, background: "#2a3a2a", borderRadius: 6, padding: "8px 14px", display: "inline-block", fontSize: 13, color: "#8bc89a" }}>
-              Ver en Amazon ↗
+             {ctaLabel}
             </div>
           </div>
         </div>
