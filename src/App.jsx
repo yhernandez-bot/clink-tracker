@@ -470,15 +470,6 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   const discount = getDiscount(d);
   const hasAlert = isAlert(set, d);
   const externalEval = evaluateExternalDeal(set, d);
-
-  console.log("external debug", {
-  name: set.name,
-  externalStore: set.externalStore,
-  externalPrice: set.externalPrice,
-  amazonPrice: d?.price,
-  externalEval
-});
-  
   const isLoading = loadingId === set.id;
   const statusColor = { idle: "#555", loading: "#f0a500", alert: "#2ecc71", ok: "#2ecc71" }[status] || "#555";
 
@@ -911,13 +902,32 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           )}
         </div>
 
-        {externalEval ? (
-  <div style={{ marginTop: 10, padding: 10, background: "red", color: "white", fontSize: 12 }}>
-    TEST EXTERNAL: {externalEval.reason}
-  </div>
-) : (
-  <div style={{ marginTop: 10, padding: 10, background: "gray", color: "white", fontSize: 12 }}>
-    NO EXTERNAL
+        {externalEval && (
+  <div
+    style={{
+      marginTop: 10,
+      padding: "10px 12px",
+      borderRadius: 8,
+      background: externalEval.status === "reject" ? "#2a1010" : "#102416",
+      border: externalEval.status === "reject" ? "1px solid #4a1a1a" : "1px solid #1f5a30",
+      color: externalEval.status === "reject" ? "#ff7a7a" : "#7dff9b",
+      fontSize: 11,
+      lineHeight: 1.5
+    }}
+  >
+    <div style={{ fontWeight: 700, marginBottom: 4 }}>
+      {externalEval.status === "reject"
+        ? "❌ OTRA TIENDA RECHAZADA"
+        : externalEval.status === "new_low"
+        ? "🔥 OTRA TIENDA APROBADA"
+        : externalEval.status === "strong"
+        ? "💥 OTRA TIENDA APROBADA"
+        : "✅ OTRA TIENDA APROBADA"}
+    </div>
+
+    <div>{String(set.externalStore || "").toUpperCase()}: {fmtPrice(set.externalPrice)}</div>
+    <div>{externalEval.reason}</div>
+    {d?.price ? <div>Amazon hoy: {fmtPrice(d.price)}</div> : null}
   </div>
 )}
         
