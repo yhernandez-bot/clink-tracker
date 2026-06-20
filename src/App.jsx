@@ -470,6 +470,15 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
   const discount = getDiscount(d);
   const hasAlert = isAlert(set, d);
   const externalEval = evaluateExternalDeal(set, d);
+
+  console.log("external debug", {
+  name: set.name,
+  externalStore: set.externalStore,
+  externalPrice: set.externalPrice,
+  amazonPrice: d?.price,
+  externalEval
+});
+  
   const isLoading = loadingId === set.id;
   const statusColor = { idle: "#555", loading: "#f0a500", alert: "#2ecc71", ok: "#2ecc71" }[status] || "#555";
 
