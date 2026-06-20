@@ -911,59 +911,13 @@ function SetCard({ set, d, status, onCheck, onSend, onRemove, onEdit, onManualPr
           )}
         </div>
 
-        {externalEval && (
-  <div
-    style={{
-      marginTop: 10,
-      padding: "10px 12px",
-      borderRadius: 8,
-      background:
-        externalEval.status === "reject"
-          ? "#2a1010"
-          : externalEval.status === "new_low"
-          ? "#0f2a16"
-          : externalEval.status === "strong"
-          ? "#0f1f2a"
-          : "#1b2412",
-      border:
-        externalEval.status === "reject"
-          ? "1px solid #4a1a1a"
-          : externalEval.status === "new_low"
-          ? "1px solid #1f5a30"
-          : externalEval.status === "strong"
-          ? "1px solid #1a4a6a"
-          : "1px solid #4a5a1a",
-      color:
-        externalEval.status === "reject"
-          ? "#ff7a7a"
-          : externalEval.status === "new_low"
-          ? "#4de27a"
-          : externalEval.status === "strong"
-          ? "#7fd8ff"
-          : "#d6e96b",
-      fontSize: 11,
-      lineHeight: 1.5
-    }}
-  >
-    <div style={{ fontWeight: 700, marginBottom: 3 }}>
-      {externalEval.status === "reject"
-        ? "❌ OTRA TIENDA RECHAZADA"
-        : externalEval.status === "new_low"
-        ? "🔥 OTRA TIENDA APROBADA"
-        : externalEval.status === "strong"
-        ? "💥 OTRA TIENDA APROBADA"
-        : "✅ OTRA TIENDA APROBADA"}
-    </div>
-
-    <div>
-      {String(set.externalStore || "").toUpperCase()}: {fmtPrice(set.externalPrice)}
-    </div>
-
-    <div>{externalEval.reason}</div>
-
-    {d?.price ? <div>Amazon hoy: {fmtPrice(d.price)}</div> : null}
-    {set.avg90 ? <div>Prom 90d Amazon: {fmtPrice(set.avg90)}</div> : null}
-    {set.min90 ? <div>Mín 90d Amazon: {fmtPrice(set.min90)}</div> : null}
+        {externalEval ? (
+  <div style={{ marginTop: 10, padding: 10, background: "red", color: "white", fontSize: 12 }}>
+    TEST EXTERNAL: {externalEval.reason}
+  </div>
+) : (
+  <div style={{ marginTop: 10, padding: 10, background: "gray", color: "white", fontSize: 12 }}>
+    NO EXTERNAL
   </div>
 )}
         
