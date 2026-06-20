@@ -307,6 +307,10 @@ async function sendToTelegram(botToken, chatId, set, d) {
   const externalEval = evaluateExternalDeal(set, d);
   const useExternal = externalEval?.approved && set.externalStore && set.externalPrice;
 
+  if (useExternal && !set.externalUrl) {
+  throw new Error("Falta la URL de la tienda externa");
+}
+
   const buttonLabel = useExternal
     ? `Ver en ${String(set.externalStore || "").toUpperCase()}`
     : "Ver en Amazon";
@@ -1371,14 +1375,7 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
 
           </div>
 
-          {alertCount > 0 && tgReady && (
-            <button
-              onClick={sendAllAlerts}
-              style={{ width: "100%", marginTop: 8, background: "#0d1f2e", color: "#2AABEE", border: "1px solid #1a3a52", padding: 10, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "monospace" }}
-            >
-              ✈ ENVIAR {alertCount} ALERTA{alertCount > 1 ? "S" : ""} A CLINK
-            </button>
-          )}
+         {/* botón de envío masivo oculto por ahora */}
         </div>
       </div>
 
