@@ -285,14 +285,20 @@ function buildCaption(set, d) {
     else if (isBuenPrecio) tag = "✅ BUEN PRECIO";
   }
 
-  const extras = [
-    tag || null,
-    set.avg90 ? `📊 Prom 90d Amazon: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
-    set.min90 ? `📉 Mín Amazon: ${fmtPrice(set.min90)}` : null,
-    useExternal && d?.price ? `🛒 Amazon hoy: ${fmtPrice(d.price)}` : null,
-    set.notes ? `🧠 ${set.notes}` : null,
-    useExternal && set.externalNote ? `🏷️ ${set.externalNote}` : null
-  ].filter(Boolean);
+const shareCta =
+  tag === "🔥 NUEVO MÍNIMO 90D"
+    ? "Si conoces a alguien que estaba esperando este set, se lo puedes pasar."
+    : null;
+
+const extras = [
+  tag || null,
+  set.avg90 ? `📊 Prom 90d Amazon: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
+  set.min90 ? `📉 Mín Amazon: ${fmtPrice(set.min90)}` : null,
+  useExternal && d?.price ? `🛒 Amazon hoy: ${fmtPrice(d.price)}` : null,
+  set.notes ? `🧠 ${set.notes}` : null,
+  useExternal && set.externalNote ? `🏷️ ${set.externalNote}` : null,
+  shareCta
+].filter(Boolean);
 
   return {
     text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900),
