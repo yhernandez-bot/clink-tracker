@@ -1010,6 +1010,18 @@ export default function LEGOTracker() {
   const [showRetiringOnly, setShowRetiringOnly] = useState(false);
   const [showLaunchesOnly, setShowLaunchesOnly] = useState(false);
   const [showGwpForm, setShowGwpForm] = useState(false);
+  const [showSponsoredForm, setShowSponsoredForm] = useState(false);
+const [sponsoredPreview, setSponsoredPreview] = useState(null);
+const [newSponsored, setNewSponsored] = useState({
+  sponsorName: "",
+  productName: "",
+  img: "",
+  productPrice: "",
+  storeName: "",
+  productUrl: "",
+  editorialReason: "",
+  disclaimer: "Contenido patrocinado. Seleccionado bajo criterio editorial Clink."
+});
 const [gwpPreview, setGwpPreview] = useState(null);
 const [newGwp, setNewGwp] = useState({
   name: "",
@@ -1296,6 +1308,68 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     setPreview(null);
   };
 
+const handleSendSponsored = async () => {
+  if (!tgConfig.botToken || !tgConfig.chatId || !sponsoredPreview) {
+    setShowTgConfig(true);
+    return;
+  }
+
+  setSending(true);
+
+  try {
+    const text = [
+      "✨ HALLAZGO PATROCINADO",
+      `Presentado por ${sponsoredPreview.sponsorName}`,
+      "",
+      `🧱 ${sponsoredPreview.productName}`,
+      `💸 Precio: ${fmtPrice(sponsoredPreview.productPrice)}`,
+      `🏪 Tienda: ${sponsoredPreview.storeName}`,
+      `👀 ${sponsoredPreview.editorialReason}`,
+      "",
+      sponsoredPreview.disclaimer || "Contenido patrocinado. Seleccionado bajo criterio editorial Clink."
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const reply_markup = {
+      inline_keyboard: [[{ text: "Ver producto", url: sponsoredPreview.productUrl }]]
+    };
+
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        botToken: tgConfig.botToken,
+        chatId: tgConfig.chatId,
+        text,
+        photo: sponsoredPreview.img,
+        reply_markup
+      })
+    });
+
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.description || "Error Telegram");
+
+    setSponsoredPreview(null);
+    setShowSponsoredForm(false);
+    setNewSponsored({
+      sponsorName: "",
+      productName: "",
+      img: "",
+      productPrice: "",
+      storeName: "",
+      productUrl: "",
+      editorialReason: "",
+      disclaimer: "Contenido patrocinado. Seleccionado bajo criterio editorial Clink."
+    });
+  } catch (e) {
+    console.error(e);
+  }
+
+  setSending(false);
+};
+
+  
 const handleSendGwp = async () => {
   if (!tgConfig.botToken || !tgConfig.chatId || !gwpPreview) {
     setShowTgConfig(true);
@@ -1700,6 +1774,26 @@ const handleSendGwp = async () => {
   </div>
 </div>
 
+   <div style={{ padding: "8px 24px 0 24px" }}>
+  <div className="cards-inner">
+    <button
+      onClick={() => setShowSponsoredForm(v => !v)}
+      style={{
+        background: showSponsoredForm ? "#241118" : "#111",
+        color: showSponsoredForm ? "#ff8db2" : "#888",
+        border: `1px solid ${showSponsoredForm ? "#5a1f33" : "#222"}`,
+        padding: "10px 14px",
+        borderRadius: 10,
+        fontFamily: "monospace",
+        fontSize: 12,
+        cursor: "pointer"
+      }}
+    >
+      {showSponsoredForm ? "✨ OCULTAR HALLAZGO PATROCINADO" : "✨ NUEVO HALLAZGO PATROCINADO"}
+    </button>
+  </div>
+</div>   
+
 {showGwpForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
     <div style={{ fontSize: 11, color: "#ffd36b", letterSpacing: 2, marginBottom: 12 }}>
@@ -1819,6 +1913,142 @@ const handleSendGwp = async () => {
     </div>
   </div>
 )}
+
+{showSponsoredForm && (
+  <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
+    <div style={{ fontSize: 11, color: "#ff8db2", letterSpacing: 2, marginBottom: 12 }}>
+      ✨ NUEVO HALLAZGO PATROCINADO
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MARCA / SPONSOR *</div>
+        <input
+          value={newSponsored.sponsorName}
+          onChange={e => setNewSponsored({ ...newSponsored, sponsorName: e.target.value })}
+          placeholder="LEGO Store México"
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOMBRE DEL PRODUCTO *</div>
+        <input
+          value={newSponsored.productName}
+          onChange={e => setNewSponsored({ ...newSponsored, productName: e.target.value })}
+          placeholder="Set, accesorio o promoción"
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>IMAGEN *</div>
+        <input
+          value={newSponsored.img}
+          onChange={e => setNewSponsored({ ...newSponsored, img: e.target.value })}
+          placeholder="https://..."
+          style={inp}
+        />
+        {newSponsored.img && (
+          <img
+            src={newSponsored.img}
+            alt=""
+            style={{ width: "100%", maxHeight: 140, objectFit: "contain", marginTop: 6, borderRadius: 6, background: "#0a0a0a" }}
+            onError={e => e.target.style.display = "none"}
+          />
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>PRECIO *</div>
+          <input
+            value={newSponsored.productPrice}
+            onChange={e => setNewSponsored({ ...newSponsored, productPrice: e.target.value })}
+            placeholder="1299"
+            type="number"
+            style={inp}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>TIENDA *</div>
+          <input
+            value={newSponsored.storeName}
+            onChange={e => setNewSponsored({ ...newSponsored, storeName: e.target.value })}
+            placeholder="LEGO / Amazon / Walmart"
+            style={inp}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>URL DEL PRODUCTO *</div>
+        <input
+          value={newSponsored.productUrl}
+          onChange={e => setNewSponsored({ ...newSponsored, productUrl: e.target.value })}
+          placeholder="https://..."
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>POR QUÉ VALE LA PENA *</div>
+        <input
+          value={newSponsored.editorialReason}
+          onChange={e => setNewSponsored({ ...newSponsored, editorialReason: e.target.value })}
+          placeholder="Beneficio, promoción o valor para coleccionistas"
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>DISCLAIMER</div>
+        <input
+          value={newSponsored.disclaimer}
+          onChange={e => setNewSponsored({ ...newSponsored, disclaimer: e.target.value })}
+          style={inp}
+        />
+      </div>
+
+      <button
+        onClick={() => setSponsoredPreview({ ...newSponsored })}
+        disabled={
+          !newSponsored.sponsorName ||
+          !newSponsored.productName ||
+          !newSponsored.img ||
+          !newSponsored.productPrice ||
+          !newSponsored.storeName ||
+          !newSponsored.productUrl ||
+          !newSponsored.editorialReason
+        }
+        style={{
+          background: "#ff8db2",
+          color: "#000",
+          border: "none",
+          padding: 12,
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "monospace",
+          opacity:
+            (!newSponsored.sponsorName ||
+              !newSponsored.productName ||
+              !newSponsored.img ||
+              !newSponsored.productPrice ||
+              !newSponsored.storeName ||
+              !newSponsored.productUrl ||
+              !newSponsored.editorialReason)
+              ? 0.5
+              : 1
+        }}
+      >
+        PREVISUALIZAR HALLAZGO
+      </button>
+    </div>
+  </div>
+)}
       
 <div style={{ padding: "8px 24px 0 24px" }}>
   <div className="cards-inner">
@@ -1895,11 +2125,19 @@ const handleSendGwp = async () => {
     onClose={() => setGwpPreview(null)}
     onSend={handleSendGwp}
   />
-)}    
+)} 
+{sponsoredPreview && (
+  <SponsoredPreviewModal
+    post={sponsoredPreview}
+    sending={sending}
+    sent={false}
+    onClose={() => setSponsoredPreview(null)}
+    onSend={handleSendSponsored}
+  />
+)}
     </div>
   );
 }
-
 
 
 function GwpPreviewModal({ gwp, onSend, onClose, sending, sent }) {
@@ -1968,6 +2206,84 @@ function GwpPreviewModal({ gwp, onSend, onClose, sending, sent }) {
             style={{ flex: 2, background: sent ? "#2ecc71" : "#ffd36b", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}
           >
             {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR GWP"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SponsoredPreviewModal({ post, onSend, onClose, sending, sent }) {
+  const text = [
+    "✨ HALLAZGO PATROCINADO",
+    `Presentado por ${post.sponsorName}`,
+    "",
+    `🧱 ${post.productName}`,
+    `💸 Precio: ${fmtPrice(post.productPrice)}`,
+    `🏪 Tienda: ${post.storeName}`,
+    `👀 ${post.editorialReason}`,
+    "",
+    post.disclaimer || "Contenido patrocinado. Seleccionado bajo criterio editorial Clink."
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: "#141414", borderRadius: "16px 16px 0 0", padding: 20, width: "100%", maxWidth: 500 }}>
+        <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, marginBottom: 14 }}>
+          PREVIEW HALLAZGO · @CLINK_MX
+        </div>
+
+        <div style={{ background: "#241118", border: "1px solid #5a1f33", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+          {post.img && (
+            <img
+              src={post.img}
+              alt=""
+              style={{ width: "100%", maxHeight: 220, objectFit: "contain", display: "block", background: "#0b0b0b", padding: 8 }}
+              onError={e => e.target.style.display = "none"}
+            />
+          )}
+
+          <div style={{ padding: 16 }}>
+            <div style={{ fontSize: 14, color: "#e8e8e8", whiteSpace: "pre-line", lineHeight: 1.7, fontFamily: "system-ui" }}>
+              {text}
+            </div>
+
+            <a
+              href={post.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                marginTop: 12,
+                background: "#5a1f33",
+                borderRadius: 6,
+                padding: "8px 14px",
+                display: "inline-block",
+                fontSize: 13,
+                color: "#ff8db2",
+                textDecoration: "none"
+              }}
+            >
+              Ver producto ↗
+            </a>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, background: "#222", color: "#aaa", border: "none", padding: 14, borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "monospace" }}
+          >
+            CANCELAR
+          </button>
+
+          <button
+            onClick={onSend}
+            disabled={sending || sent}
+            style={{ flex: 2, background: sent ? "#2ecc71" : "#ff8db2", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}
+          >
+            {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR HALLAZGO"}
           </button>
         </div>
       </div>
