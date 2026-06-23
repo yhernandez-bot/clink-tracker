@@ -1011,6 +1011,17 @@ export default function LEGOTracker() {
   const [showLaunchesOnly, setShowLaunchesOnly] = useState(false);
   const [showGwpForm, setShowGwpForm] = useState(false);
   const [showSponsoredForm, setShowSponsoredForm] = useState(false);
+  const [showCodeForm, setShowCodeForm] = useState(false);
+const [codePreview, setCodePreview] = useState(null);
+const [newCodePost, setNewCodePost] = useState({
+  sponsorName: "",
+  codeName: "",
+  benefitDescription: "",
+  endDate: "",
+  url: "",
+  note: "",
+  img: ""
+});
 const [sponsoredPreview, setSponsoredPreview] = useState(null);
 const [newSponsored, setNewSponsored] = useState({
   sponsorName: "",
@@ -1361,6 +1372,66 @@ const handleSendSponsored = async () => {
       productUrl: "",
       editorialReason: "",
       disclaimer: "Contenido patrocinado. Seleccionado bajo criterio editorial Clink."
+    });
+  } catch (e) {
+    console.error(e);
+  }
+
+  setSending(false);
+};
+
+const handleSendCode = async () => {
+  if (!tgConfig.botToken || !tgConfig.chatId || !codePreview) {
+    setShowTgConfig(true);
+    return;
+  }
+
+  setSending(true);
+
+  try {
+    const text = [
+      "🏷️ CÓDIGO EXCLUSIVO CLINK",
+      `Activado por ${codePreview.sponsorName}`,
+      "",
+      `Código: ${codePreview.codeName}`,
+      `Beneficio: ${codePreview.benefitDescription}`,
+      `Vigencia: ${codePreview.endDate}`,
+      codePreview.note ? `👀 ${codePreview.note}` : null,
+      "",
+      "Contenido patrocinado. Beneficio disponible para la comunidad Clink."
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const reply_markup = {
+      inline_keyboard: [[{ text: "Ver beneficio", url: codePreview.url }]]
+    };
+
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        botToken: tgConfig.botToken,
+        chatId: tgConfig.chatId,
+        text,
+        photo: codePreview.img || null,
+        reply_markup
+      })
+    });
+
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.description || "Error Telegram");
+
+    setCodePreview(null);
+    setShowCodeForm(false);
+    setNewCodePost({
+      sponsorName: "",
+      codeName: "",
+      benefitDescription: "",
+      endDate: "",
+      url: "",
+      note: "",
+      img: ""
     });
   } catch (e) {
     console.error(e);
@@ -2049,15 +2120,15 @@ const handleSendGwp = async () => {
     </div>
   </div>
 )}
-      
+
 <div style={{ padding: "8px 24px 0 24px" }}>
   <div className="cards-inner">
     <button
-      onClick={() => setShowLaunchesOnly(v => !v)}
+      onClick={() => setShowCodeForm(v => !v)}
       style={{
-        background: showLaunchesOnly ? "#0a2a3a" : "#111",
-        color: showLaunchesOnly ? "#7fe7ff" : "#888",
-        border: `1px solid ${showLaunchesOnly ? "#14485e" : "#222"}`,
+        background: showCodeForm ? "#1f1a2a" : "#111",
+        color: showCodeForm ? "#c6a8ff" : "#888",
+        border: `1px solid ${showCodeForm ? "#4b3a6a" : "#222"}`,
         padding: "10px 14px",
         borderRadius: 10,
         fontFamily: "monospace",
@@ -2065,10 +2136,132 @@ const handleSendGwp = async () => {
         cursor: "pointer"
       }}
     >
-      {showLaunchesOnly ? "🆕 MOSTRANDO SOLO LAUNCHES" : "🆕 FILTRAR SOLO LAUNCHES"}
+      {showCodeForm ? "🏷️ OCULTAR CÓDIGO EXCLUSIVO" : "🏷️ NUEVO CÓDIGO EXCLUSIVO"}
     </button>
   </div>
 </div>
+
+{showCodeForm && (
+  <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
+    <div style={{ fontSize: 11, color: "#c6a8ff", letterSpacing: 2, marginBottom: 12 }}>
+      🏷️ NUEVO CÓDIGO EXCLUSIVO
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>MARCA / SPONSOR *</div>
+        <input
+          value={newCodePost.sponsorName}
+          onChange={e => setNewCodePost({ ...newCodePost, sponsorName: e.target.value })}
+          placeholder="LEGO Store México"
+          style={inp}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>CÓDIGO *</div>
+          <input
+            value={newCodePost.codeName}
+            onChange={e => setNewCodePost({ ...newCodePost, codeName: e.target.value })}
+            placeholder="CLINK10"
+            style={inp}
+          />
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>VIGENCIA HASTA *</div>
+          <input
+            value={newCodePost.endDate}
+            onChange={e => setNewCodePost({ ...newCodePost, endDate: e.target.value })}
+            type="date"
+            style={inp}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>BENEFICIO *</div>
+        <input
+          value={newCodePost.benefitDescription}
+          onChange={e => setNewCodePost({ ...newCodePost, benefitDescription: e.target.value })}
+          placeholder="10% de descuento / envío gratis / preventa / regalo"
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>URL *</div>
+        <input
+          value={newCodePost.url}
+          onChange={e => setNewCodePost({ ...newCodePost, url: e.target.value })}
+          placeholder="https://..."
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>IMAGEN</div>
+        <input
+          value={newCodePost.img}
+          onChange={e => setNewCodePost({ ...newCodePost, img: e.target.value })}
+          placeholder="https://..."
+          style={inp}
+        />
+        {newCodePost.img && (
+          <img
+            src={newCodePost.img}
+            alt=""
+            style={{ width: "100%", maxHeight: 140, objectFit: "contain", marginTop: 6, borderRadius: 6, background: "#0a0a0a" }}
+            onError={e => e.target.style.display = "none"}
+          />
+        )}
+      </div>
+
+      <div>
+        <div style={{ fontSize: 10, color: "#777", marginBottom: 4 }}>NOTA</div>
+        <input
+          value={newCodePost.note}
+          onChange={e => setNewCodePost({ ...newCodePost, note: e.target.value })}
+          placeholder="Beneficio activo para la comunidad Clink."
+          style={inp}
+        />
+      </div>
+
+      <button
+        onClick={() => setCodePreview({ ...newCodePost })}
+        disabled={
+          !newCodePost.sponsorName ||
+          !newCodePost.codeName ||
+          !newCodePost.benefitDescription ||
+          !newCodePost.endDate ||
+          !newCodePost.url
+        }
+        style={{
+          background: "#c6a8ff",
+          color: "#000",
+          border: "none",
+          padding: 12,
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "monospace",
+          opacity:
+            (!newCodePost.sponsorName ||
+              !newCodePost.codeName ||
+              !newCodePost.benefitDescription ||
+              !newCodePost.endDate ||
+              !newCodePost.url)
+              ? 0.5
+              : 1
+        }}
+      >
+        PREVISUALIZAR CÓDIGO
+      </button>
+    </div>
+  </div>
+)}
       
       <div className="cards-inner">
         {dbLoading ? (
@@ -2126,6 +2319,7 @@ const handleSendGwp = async () => {
     onSend={handleSendGwp}
   />
 )} 
+      
 {sponsoredPreview && (
   <SponsoredPreviewModal
     post={sponsoredPreview}
@@ -2133,6 +2327,16 @@ const handleSendGwp = async () => {
     sent={false}
     onClose={() => setSponsoredPreview(null)}
     onSend={handleSendSponsored}
+  />
+)}
+
+{codePreview && (
+  <CodePreviewModal
+    post={codePreview}
+    sending={sending}
+    sent={false}
+    onClose={() => setCodePreview(null)}
+    onSend={handleSendCode}
   />
 )}
     </div>
@@ -2284,6 +2488,84 @@ function SponsoredPreviewModal({ post, onSend, onClose, sending, sent }) {
             style={{ flex: 2, background: sent ? "#2ecc71" : "#ff8db2", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}
           >
             {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR HALLAZGO"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CodePreviewModal({ post, onSend, onClose, sending, sent }) {
+  const text = [
+    "🏷️ CÓDIGO EXCLUSIVO CLINK",
+    `Activado por ${post.sponsorName}`,
+    "",
+    `Código: ${post.codeName}`,
+    `Beneficio: ${post.benefitDescription}`,
+    `Vigencia: ${post.endDate}`,
+    post.note ? `👀 ${post.note}` : null,
+    "",
+    "Contenido patrocinado. Beneficio disponible para la comunidad Clink."
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: "#141414", borderRadius: "16px 16px 0 0", padding: 20, width: "100%", maxWidth: 500 }}>
+        <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, marginBottom: 14 }}>
+          PREVIEW CÓDIGO · @CLINK_MX
+        </div>
+
+        <div style={{ background: "#1f1a2a", border: "1px solid #4b3a6a", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+          {post.img && (
+            <img
+              src={post.img}
+              alt=""
+              style={{ width: "100%", maxHeight: 220, objectFit: "contain", display: "block", background: "#0b0b0b", padding: 8 }}
+              onError={e => e.target.style.display = "none"}
+            />
+          )}
+
+          <div style={{ padding: 16 }}>
+            <div style={{ fontSize: 14, color: "#e8e8e8", whiteSpace: "pre-line", lineHeight: 1.7, fontFamily: "system-ui" }}>
+              {text}
+            </div>
+
+            <a
+              href={post.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                marginTop: 12,
+                background: "#4b3a6a",
+                borderRadius: 6,
+                padding: "8px 14px",
+                display: "inline-block",
+                fontSize: 13,
+                color: "#c6a8ff",
+                textDecoration: "none"
+              }}
+            >
+              Ver beneficio ↗
+            </a>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{ flex: 1, background: "#222", color: "#aaa", border: "none", padding: 14, borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "monospace" }}
+          >
+            CANCELAR
+          </button>
+
+          <button
+            onClick={onSend}
+            disabled={sending || sent}
+            style={{ flex: 2, background: sent ? "#2ecc71" : "#c6a8ff", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}
+          >
+            {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR CÓDIGO"}
           </button>
         </div>
       </div>
