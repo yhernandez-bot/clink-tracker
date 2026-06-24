@@ -1894,7 +1894,18 @@ const handleSendGwp = async () => {
     />
   </div>
 </div>
-      <div style={{ padding: "8px 24px 0 24px" }}>
+      <div style={{ padding: "16px 24px 0 24px" }}>
+  <div className="cards-inner">
+    <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
+      CONTENIDO EDITORIAL
+    </div>
+    <div style={{ fontSize: 11, color: "#444", marginBottom: 10 }}>
+      Formatos propios del canal
+    </div>
+  </div>
+</div>
+
+<div style={{ padding: "8px 24px 0 24px" }}>
   <div className="cards-inner">
     <button
       onClick={() => setShowRetiringOnly(v => !v)}
@@ -1914,7 +1925,7 @@ const handleSendGwp = async () => {
   </div>
 </div>
 
-    <div style={{ padding: "8px 24px 0 24px" }}>
+<div style={{ padding: "8px 24px 0 24px" }}>
   <div className="cards-inner">
     <button
       onClick={() => setShowGwpForm(v => !v)}
@@ -1934,7 +1945,18 @@ const handleSendGwp = async () => {
   </div>
 </div>
 
-   <div style={{ padding: "8px 24px 0 24px" }}>
+  <div style={{ padding: "16px 24px 0 24px" }}>
+  <div className="cards-inner">
+    <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
+      FORMATOS PATROCINADOS
+    </div>
+    <div style={{ fontSize: 11, color: "#444", marginBottom: 10 }}>
+      Activaciones de marca y formatos comerciales
+    </div>
+  </div>
+</div>
+
+<div style={{ padding: "8px 24px 0 24px" }}>
   <div className="cards-inner">
     <button
       onClick={() => setShowSponsoredForm(v => !v)}
@@ -1952,7 +1974,7 @@ const handleSendGwp = async () => {
       {showSponsoredForm ? "✨ OCULTAR HALLAZGO PATROCINADO" : "✨ NUEVO HALLAZGO PATROCINADO"}
     </button>
   </div>
-</div>   
+</div>
 
 {showGwpForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
