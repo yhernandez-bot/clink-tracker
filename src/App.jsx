@@ -1920,41 +1920,58 @@ const handleSendGwp = async () => {
         Formatos propios del canal
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <button
-          onClick={() => setShowRetiringOnly(v => !v)}
-          style={{
-            background: showRetiringOnly ? "#3a2a0a" : "#111",
-            color: showRetiringOnly ? "#f0c15a" : "#888",
-            border: `1px solid ${showRetiringOnly ? "#5a4310" : "#222"}`,
-            padding: "10px 14px",
-            borderRadius: 10,
-            fontFamily: "monospace",
-            fontSize: 12,
-            cursor: "pointer",
-            textAlign: "left"
-          }}
-        >
-          {showRetiringOnly ? "⏳ MOSTRANDO SOLO RETIRED SOON" : "⏳ FILTRAR SOLO RETIRED SOON"}
-        </button>
+     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+  <button
+    onClick={() => setShowRetiringOnly(v => !v)}
+    style={{
+      background: showRetiringOnly ? "#3a2a0a" : "#111",
+      color: showRetiringOnly ? "#f0c15a" : "#888",
+      border: `1px solid ${showRetiringOnly ? "#5a4310" : "#222"}`,
+      padding: "10px 14px",
+      borderRadius: 10,
+      fontFamily: "monospace",
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left"
+    }}
+  >
+    {showRetiringOnly ? "⏳ MOSTRANDO SOLO RETIRED SOON" : "⏳ FILTRAR SOLO RETIRED SOON"}
+  </button>
 
-        <button
-          onClick={() => setShowGwpForm(v => !v)}
-          style={{
-            background: showGwpForm ? "#2a1f0a" : "#111",
-            color: showGwpForm ? "#ffd36b" : "#888",
-            border: `1px solid ${showGwpForm ? "#5a4310" : "#222"}`,
-            padding: "10px 14px",
-            borderRadius: 10,
-            fontFamily: "monospace",
-            fontSize: 12,
-            cursor: "pointer",
-            textAlign: "left"
-          }}
-        >
-          {showGwpForm ? "🎁 OCULTAR POST GWP" : "🎁 NUEVO POST GWP"}
-        </button>
-      </div>
+  <button
+    onClick={() => setShowLaunchesOnly(v => !v)}
+    style={{
+      background: showLaunchesOnly ? "#0f223a" : "#111",
+      color: showLaunchesOnly ? "#7dc3ff" : "#888",
+      border: `1px solid ${showLaunchesOnly ? "#1f4d7a" : "#222"}`,
+      padding: "10px 14px",
+      borderRadius: 10,
+      fontFamily: "monospace",
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left"
+    }}
+  >
+    {showLaunchesOnly ? "🆕 MOSTRANDO SOLO LAUNCHES" : "🆕 FILTRAR SOLO LAUNCHES"}
+  </button>
+
+  <button
+    onClick={() => setShowGwpForm(v => !v)}
+    style={{
+      background: showGwpForm ? "#2a1f0a" : "#111",
+      color: showGwpForm ? "#ffd36b" : "#888",
+      border: `1px solid ${showGwpForm ? "#5a4310" : "#222"}`,
+      padding: "10px 14px",
+      borderRadius: 10,
+      fontFamily: "monospace",
+      fontSize: 12,
+      cursor: "pointer",
+      textAlign: "left"
+    }}
+  >
+    {showGwpForm ? "🎁 OCULTAR POST GWP" : "🎁 NUEVO POST GWP"}
+  </button>
+</div>
     </div>
 
     <div
