@@ -2039,26 +2039,6 @@ const handleSendGwp = async () => {
   </div>
 </div>
 
-<div style={{ padding: "8px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <button
-      onClick={() => setShowSponsoredForm(v => !v)}
-      style={{
-        background: showSponsoredForm ? "#241118" : "#111",
-        color: showSponsoredForm ? "#ff8db2" : "#888",
-        border: `1px solid ${showSponsoredForm ? "#5a1f33" : "#222"}`,
-        padding: "10px 14px",
-        borderRadius: 10,
-        fontFamily: "monospace",
-        fontSize: 12,
-        cursor: "pointer"
-      }}
-    >
-      {showSponsoredForm ? "✨ OCULTAR HALLAZGO PATROCINADO" : "✨ NUEVO HALLAZGO PATROCINADO"}
-    </button>
-  </div>
-</div>
-
 {showGwpForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
     <div style={{ fontSize: 11, color: "#ffd36b", letterSpacing: 2, marginBottom: 12 }}>
@@ -2314,46 +2294,6 @@ const handleSendGwp = async () => {
     </div>
   </div>
 )}
-
-<div style={{ padding: "8px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <button
-      onClick={() => setShowCodeForm(v => !v)}
-      style={{
-        background: showCodeForm ? "#1f1a2a" : "#111",
-        color: showCodeForm ? "#c6a8ff" : "#888",
-        border: `1px solid ${showCodeForm ? "#4b3a6a" : "#222"}`,
-        padding: "10px 14px",
-        borderRadius: 10,
-        fontFamily: "monospace",
-        fontSize: 12,
-        cursor: "pointer"
-      }}
-    >
-      {showCodeForm ? "🏷️ OCULTAR CÓDIGO EXCLUSIVO" : "🏷️ NUEVO CÓDIGO EXCLUSIVO"}
-    </button>
-  </div>
-</div>
-
-<div style={{ padding: "8px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <button
-      onClick={() => setShowPollForm(v => !v)}
-      style={{
-        background: showPollForm ? "#13221f" : "#111",
-        color: showPollForm ? "#7ee7c3" : "#888",
-        border: `1px solid ${showPollForm ? "#245447" : "#222"}`,
-        padding: "10px 14px",
-        borderRadius: 10,
-        fontFamily: "monospace",
-        fontSize: 12,
-        cursor: "pointer"
-      }}
-    >
-      {showPollForm ? "📊 OCULTAR ENCUESTA PATROCINADA" : "📊 NUEVA ENCUESTA PATROCINADA"}
-    </button>
-  </div>
-</div>
 
 {showPollForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
