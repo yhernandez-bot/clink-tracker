@@ -2045,17 +2045,6 @@ const handleSendGwp = async () => {
   </div>
 </div>
 
-  <div style={{ padding: "16px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
-      FORMATOS PATROCINADOS
-    </div>
-    <div style={{ fontSize: 11, color: "#444", marginBottom: 10 }}>
-      Activaciones de marca y formatos comerciales
-    </div>
-  </div>
-</div>
-
 {showGwpForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
     <div style={{ fontSize: 11, color: "#ffd36b", letterSpacing: 2, marginBottom: 12 }}>
