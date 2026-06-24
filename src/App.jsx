@@ -1894,54 +1894,137 @@ const handleSendGwp = async () => {
     />
   </div>
 </div>
-      <div style={{ padding: "16px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
-      CONTENIDO EDITORIAL
-    </div>
-    <div style={{ fontSize: 11, color: "#444", marginBottom: 10 }}>
-      Formatos propios del canal
-    </div>
-  </div>
-</div>
 
-<div style={{ padding: "8px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <button
-      onClick={() => setShowRetiringOnly(v => !v)}
+<div style={{ padding: "16px 24px 0 24px" }}>
+  <div
+    className="cards-inner"
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gap: 16,
+      alignItems: "start"
+    }}
+  >
+    <div
       style={{
-        background: showRetiringOnly ? "#3a2a0a" : "#111",
-        color: showRetiringOnly ? "#f0c15a" : "#888",
-        border: `1px solid ${showRetiringOnly ? "#5a4310" : "#222"}`,
-        padding: "10px 14px",
-        borderRadius: 10,
-        fontFamily: "monospace",
-        fontSize: 12,
-        cursor: "pointer"
+        background: "#0b0b0b",
+        border: "1px solid #171717",
+        borderRadius: 12,
+        padding: 14
       }}
     >
-      {showRetiringOnly ? "⏳ MOSTRANDO SOLO RETIRED SOON" : "⏳ FILTRAR SOLO RETIRED SOON"}
-    </button>
-  </div>
-</div>
+      <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
+        CONTENIDO EDITORIAL
+      </div>
+      <div style={{ fontSize: 11, color: "#444", marginBottom: 12 }}>
+        Formatos propios del canal
+      </div>
 
-<div style={{ padding: "8px 24px 0 24px" }}>
-  <div className="cards-inner">
-    <button
-      onClick={() => setShowGwpForm(v => !v)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={() => setShowRetiringOnly(v => !v)}
+          style={{
+            background: showRetiringOnly ? "#3a2a0a" : "#111",
+            color: showRetiringOnly ? "#f0c15a" : "#888",
+            border: `1px solid ${showRetiringOnly ? "#5a4310" : "#222"}`,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontFamily: "monospace",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          {showRetiringOnly ? "⏳ MOSTRANDO SOLO RETIRED SOON" : "⏳ FILTRAR SOLO RETIRED SOON"}
+        </button>
+
+        <button
+          onClick={() => setShowGwpForm(v => !v)}
+          style={{
+            background: showGwpForm ? "#2a1f0a" : "#111",
+            color: showGwpForm ? "#ffd36b" : "#888",
+            border: `1px solid ${showGwpForm ? "#5a4310" : "#222"}`,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontFamily: "monospace",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          {showGwpForm ? "🎁 OCULTAR POST GWP" : "🎁 NUEVO POST GWP"}
+        </button>
+      </div>
+    </div>
+
+    <div
       style={{
-        background: showGwpForm ? "#2a1f0a" : "#111",
-        color: showGwpForm ? "#ffd36b" : "#888",
-        border: `1px solid ${showGwpForm ? "#5a4310" : "#222"}`,
-        padding: "10px 14px",
-        borderRadius: 10,
-        fontFamily: "monospace",
-        fontSize: 12,
-        cursor: "pointer"
+        background: "#0b0b0b",
+        border: "1px solid #171717",
+        borderRadius: 12,
+        padding: 14
       }}
     >
-      {showGwpForm ? "🎁 OCULTAR POST GWP" : "🎁 NUEVO POST GWP"}
-    </button>
+      <div style={{ fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 4 }}>
+        FORMATOS PATROCINADOS
+      </div>
+      <div style={{ fontSize: 11, color: "#444", marginBottom: 12 }}>
+        Activaciones de marca y formatos comerciales
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={() => setShowSponsoredForm(v => !v)}
+          style={{
+            background: showSponsoredForm ? "#241118" : "#111",
+            color: showSponsoredForm ? "#ff8db2" : "#888",
+            border: `1px solid ${showSponsoredForm ? "#5a1f33" : "#222"}`,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontFamily: "monospace",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          {showSponsoredForm ? "✨ OCULTAR HALLAZGO PATROCINADO" : "✨ NUEVO HALLAZGO PATROCINADO"}
+        </button>
+
+        <button
+          onClick={() => setShowCodeForm(v => !v)}
+          style={{
+            background: showCodeForm ? "#1f1a2a" : "#111",
+            color: showCodeForm ? "#c6a8ff" : "#888",
+            border: `1px solid ${showCodeForm ? "#4b3a6a" : "#222"}`,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontFamily: "monospace",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          {showCodeForm ? "🏷️ OCULTAR CÓDIGO EXCLUSIVO" : "🏷️ NUEVO CÓDIGO EXCLUSIVO"}
+        </button>
+
+        <button
+          onClick={() => setShowPollForm(v => !v)}
+          style={{
+            background: showPollForm ? "#13221f" : "#111",
+            color: showPollForm ? "#7ee7c3" : "#888",
+            border: `1px solid ${showPollForm ? "#245447" : "#222"}`,
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontFamily: "monospace",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left"
+          }}
+        >
+          {showPollForm ? "📊 OCULTAR ENCUESTA PATROCINADA" : "📊 NUEVA ENCUESTA PATROCINADA"}
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
