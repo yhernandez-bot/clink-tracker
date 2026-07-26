@@ -1062,16 +1062,7 @@ const [newPollPost, setNewPollPost] = useState({
   option4: "",
   option5: ""
 });
-
-  const [newEditorialPoll, setNewEditorialPoll] = useState({
-  introCopy: "",
-  pollQuestion: "",
-  option1: "",
-  option2: "",
-  option3: "",
-  option4: "",
-  option5: ""
-});
+  
   
 const [newGwp, setNewGwp] = useState({
   name: "",
