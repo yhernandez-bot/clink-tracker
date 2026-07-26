@@ -1013,11 +1013,23 @@ export default function LEGOTracker() {
 const [showSponsoredForm, setShowSponsoredForm] = useState(false);
 const [showCodeForm, setShowCodeForm] = useState(false);
 const [showPollForm, setShowPollForm] = useState(false);
+const [showEditorialPollForm, setShowEditorialPollForm] = useState(false);
 
 const [codePreview, setCodePreview] = useState(null);
 const [sponsoredPreview, setSponsoredPreview] = useState(null);
 const [gwpPreview, setGwpPreview] = useState(null);
 const [pollPreview, setPollPreview] = useState(null);
+const [editorialPollPreview, setEditorialPollPreview] = useState(null);
+
+const [newEditorialPoll, setNewEditorialPoll] = useState({
+  introText: "",
+  question: "",
+  option1: "",
+  option2: "",
+  option3: "",
+  option4: "",
+  option5: ""
+});
 
 const [newCodePost, setNewCodePost] = useState({
   sponsorName: "",
@@ -1042,6 +1054,16 @@ const [newSponsored, setNewSponsored] = useState({
 
 const [newPollPost, setNewPollPost] = useState({
   sponsorName: "",
+  introCopy: "",
+  pollQuestion: "",
+  option1: "",
+  option2: "",
+  option3: "",
+  option4: "",
+  option5: ""
+});
+
+  const [newEditorialPoll, setNewEditorialPoll] = useState({
   introCopy: "",
   pollQuestion: "",
   option1: "",
@@ -1486,7 +1508,11 @@ const handleSendPoll = async () => {
     });
 
     const introJson = await introRes.json();
-    if (!introJson.ok) throw new Error(introJson.description || "Error Telegram intro");
+    if (!introJson.ok) {
+      throw new Error(
+        introJson.description || "Error Telegram intro"
+      );
+    }
 
     const options = [
       pollPreview.option1,
@@ -1496,23 +1522,32 @@ const handleSendPoll = async () => {
       pollPreview.option5
     ].filter(Boolean);
 
-    const pollRes = await fetch(`https://api.telegram.org/bot${tgConfig.botToken}/sendPoll`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: tgConfig.chatId,
-        question: pollPreview.pollQuestion,
-        options,
-        is_anonymous: false,
-        allows_multiple_answers: false
-      })
-    });
+    const pollRes = await fetch(
+      `https://api.telegram.org/bot${tgConfig.botToken}/sendPoll`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: tgConfig.chatId,
+          question: pollPreview.pollQuestion,
+          options,
+          is_anonymous: false,
+          allows_multiple_answers: false
+        })
+      }
+    );
 
     const pollJson = await pollRes.json();
-    if (!pollJson.ok) throw new Error(pollJson.description || "Error Telegram poll");
+
+    if (!pollJson.ok) {
+      throw new Error(
+        pollJson.description || "Error Telegram poll"
+      );
+    }
 
     setPollPreview(null);
     setShowPollForm(false);
+
     setNewPollPost({
       sponsorName: "",
       introCopy: "",
@@ -1529,6 +1564,98 @@ const handleSendPoll = async () => {
 
   setSending(false);
 };
+
+const handleSendEditorialPoll = async () => {
+  if (
+    !tgConfig.botToken ||
+    !tgConfig.chatId ||
+    !editorialPollPreview
+  ) {
+    setShowTgConfig(true);
+    return;
+  }
+
+  setSending(true);
+
+  try {
+    if (editorialPollPreview.introCopy) {
+      const introText = [
+        "📊 ENCUESTA CLINK",
+        "",
+        editorialPollPreview.introCopy
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const introRes = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          botToken: tgConfig.botToken,
+          chatId: tgConfig.chatId,
+          text: introText
+        })
+      });
+
+      const introJson = await introRes.json();
+
+      if (!introJson.ok) {
+        throw new Error(
+          introJson.description || "Error Telegram intro"
+        );
+      }
+    }
+
+    const options = [
+      editorialPollPreview.option1,
+      editorialPollPreview.option2,
+      editorialPollPreview.option3,
+      editorialPollPreview.option4,
+      editorialPollPreview.option5
+    ].filter(Boolean);
+
+    const pollRes = await fetch(
+      `https://api.telegram.org/bot${tgConfig.botToken}/sendPoll`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: tgConfig.chatId,
+          question: editorialPollPreview.pollQuestion,
+          options,
+          is_anonymous: false,
+          allows_multiple_answers: false
+        })
+      }
+    );
+
+    const pollJson = await pollRes.json();
+
+    if (!pollJson.ok) {
+      throw new Error(
+        pollJson.description || "Error Telegram poll"
+      );
+    }
+
+    setEditorialPollPreview(null);
+    setShowEditorialPollForm(false);
+
+    setNewEditorialPoll({
+      introCopy: "",
+      pollQuestion: "",
+      option1: "",
+      option2: "",
+      option3: "",
+      option4: "",
+      option5: ""
+    });
+  } catch (e) {
+    console.error(e);
+  }
+
+  setSending(false);
+};
+
 
 const handleSendGwp = async () => {
   if (!tgConfig.botToken || !tgConfig.chatId || !gwpPreview) {
@@ -1971,9 +2098,30 @@ const handleSendGwp = async () => {
   >
     {showGwpForm ? "🎁 OCULTAR POST GWP" : "🎁 NUEVO POST GWP"}
   </button>
+
+<button
+  onClick={() => setShowEditorialPollForm(v => !v)}
+  style={{
+    background: showEditorialPollForm ? "#2a240a" : "#111",
+    color: showEditorialPollForm ? "#f0d56a" : "#888",
+    border: `1px solid ${showEditorialPollForm ? "#5a4d10" : "#222"}`,
+    padding: "10px 14px",
+    borderRadius: 10,
+    fontFamily: "monospace",
+    fontSize: 12,
+    cursor: "pointer",
+    textAlign: "left"
+  }}
+>
+  {showEditorialPollForm
+    ? "📊 OCULTAR ENCUESTA EDITORIAL"
+    : "📊 NUEVA ENCUESTA EDITORIAL"}
+</button>
+       
 </div>
     </div>
 
+    
     <div
       style={{
         background: "#0b0b0b",
@@ -2429,6 +2577,237 @@ const handleSendGwp = async () => {
   </div>
 )}
 
+{showEditorialPollForm && (
+  <div
+    style={{
+      background: "#111",
+      borderBottom: "1px solid #1e1e1e",
+      padding: 16,
+      marginTop: 8
+    }}
+  >
+    <div
+      style={{
+        fontSize: 11,
+        color: "#f0a500",
+        letterSpacing: 2,
+        marginBottom: 12
+      }}
+    >
+      📊 NUEVA ENCUESTA EDITORIAL
+    </div>
+
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div>
+        <div
+          style={{
+            fontSize: 10,
+            color: "#777",
+            marginBottom: 4
+          }}
+        >
+          COPY INTRODUCTORIO
+        </div>
+
+        <input
+          value={newEditorialPoll.introCopy}
+          onChange={e =>
+            setNewEditorialPoll({
+              ...newEditorialPoll,
+              introCopy: e.target.value
+            })
+          }
+          placeholder="Queremos conocer mejor a la comunidad Clink."
+          style={inp}
+        />
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontSize: 10,
+            color: "#777",
+            marginBottom: 4
+          }}
+        >
+          PREGUNTA DE LA ENCUESTA *
+        </div>
+
+        <input
+          value={newEditorialPoll.pollQuestion}
+          onChange={e =>
+            setNewEditorialPoll({
+              ...newEditorialPoll,
+              pollQuestion: e.target.value
+            })
+          }
+          placeholder="¿Cuál es tu línea favorita de LEGO?"
+          style={inp}
+        />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: "#777",
+              marginBottom: 4
+            }}
+          >
+            OPCIÓN 1 *
+          </div>
+
+          <input
+            value={newEditorialPoll.option1}
+            onChange={e =>
+              setNewEditorialPoll({
+                ...newEditorialPoll,
+                option1: e.target.value
+              })
+            }
+            placeholder="Star Wars"
+            style={inp}
+          />
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: "#777",
+              marginBottom: 4
+            }}
+          >
+            OPCIÓN 2 *
+          </div>
+
+          <input
+            value={newEditorialPoll.option2}
+            onChange={e =>
+              setNewEditorialPoll({
+                ...newEditorialPoll,
+                option2: e.target.value
+              })
+            }
+            placeholder="Icons"
+            style={inp}
+          />
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: "#777",
+              marginBottom: 4
+            }}
+          >
+            OPCIÓN 3 *
+          </div>
+
+          <input
+            value={newEditorialPoll.option3}
+            onChange={e =>
+              setNewEditorialPoll({
+                ...newEditorialPoll,
+                option3: e.target.value
+              })
+            }
+            placeholder="Technic"
+            style={inp}
+          />
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: "#777",
+              marginBottom: 4
+            }}
+          >
+            OPCIÓN 4 *
+          </div>
+
+          <input
+            value={newEditorialPoll.option4}
+            onChange={e =>
+              setNewEditorialPoll({
+                ...newEditorialPoll,
+                option4: e.target.value
+              })
+            }
+            placeholder="Marvel"
+            style={inp}
+          />
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              color: "#777",
+              marginBottom: 4
+            }}
+          >
+            OPCIÓN 5
+          </div>
+
+          <input
+            value={newEditorialPoll.option5}
+            onChange={e =>
+              setNewEditorialPoll({
+                ...newEditorialPoll,
+                option5: e.target.value
+              })
+            }
+            placeholder="Otra"
+            style={inp}
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={() =>
+          setEditorialPollPreview({
+            ...newEditorialPoll
+          })
+        }
+        disabled={
+          !newEditorialPoll.pollQuestion ||
+          !newEditorialPoll.option1 ||
+          !newEditorialPoll.option2 ||
+          !newEditorialPoll.option3 ||
+          !newEditorialPoll.option4
+        }
+        style={{
+          background: "#f0a500",
+          color: "#000",
+          border: "none",
+          padding: 12,
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: "pointer",
+          fontFamily: "monospace",
+          opacity:
+            (!newEditorialPoll.pollQuestion ||
+              !newEditorialPoll.option1 ||
+              !newEditorialPoll.option2 ||
+              !newEditorialPoll.option3 ||
+              !newEditorialPoll.option4)
+              ? 0.5
+              : 1
+        }}
+      >
+        PREVISUALIZAR ENCUESTA
+      </button>
+    </div>
+  </div>
+)}
+      
+      
 {showCodeForm && (
   <div style={{ background: "#111", borderBottom: "1px solid #1e1e1e", padding: 16, marginTop: 8 }}>
     <div style={{ fontSize: 11, color: "#c6a8ff", letterSpacing: 2, marginBottom: 12 }}>
@@ -2637,10 +3016,23 @@ const handleSendGwp = async () => {
     onSend={handleSendPoll}
   />
 )}
+
+{editorialPollPreview && (
+  <PollPreviewModal
+    post={{
+      ...editorialPollPreview,
+      sponsorName: ""
+    }}
+    sending={sending}
+    sent={false}
+    onClose={() => setEditorialPollPreview(null)}
+    onSend={handleSendEditorialPoll}
+    editorial
+  />
+)}
     </div>
   );
 }
-
 
 function GwpPreviewModal({ gwp, onSend, onClose, sending, sent }) {
   const text = [
@@ -2871,7 +3263,14 @@ function CodePreviewModal({ post, onSend, onClose, sending, sent }) {
   );
 }
 
-function PollPreviewModal({ post, onSend, onClose, sending, sent }) {
+function PollPreviewModal({
+  post,
+  onSend,
+  onClose,
+  sending,
+  sent,
+  editorial = false
+}) {
   const pollOptions = [
     post.option1,
     post.option2,
@@ -2880,44 +3279,125 @@ function PollPreviewModal({ post, onSend, onClose, sending, sent }) {
     post.option5
   ].filter(Boolean);
 
-  const introText = [
-    "📊 ENCUESTA PATROCINADA",
-    `Presentada por ${post.sponsorName}`,
-    "",
-    post.introCopy
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const introText = editorial
+    ? [
+        post.introCopy ? "📊 ENCUESTA CLINK" : null,
+        post.introCopy ? "" : null,
+        post.introCopy
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : [
+        "📊 ENCUESTA PATROCINADA",
+        `Presentada por ${post.sponsorName}`,
+        "",
+        post.introCopy
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+  const accentColor = editorial ? "#f0a500" : "#7ee7c3";
+  const cardBackground = editorial ? "#211b0d" : "#13221f";
+  const cardBorder = editorial ? "#5a4310" : "#245447";
+  const pollBackground = editorial ? "#171308" : "#0f1715";
+  const pollBorder = editorial ? "#49380e" : "#1e3b35";
+  const optionColor = editorial ? "#f5d98d" : "#b9e9db";
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-      <div style={{ background: "#141414", borderRadius: "16px 16px 0 0", padding: 20, width: "100%", maxWidth: 500 }}>
-        <div style={{ fontSize: 10, color: "#555", letterSpacing: 2, marginBottom: 14 }}>
-          PREVIEW ENCUESTA · @CLINK_MX
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.92)",
+        zIndex: 100,
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center"
+      }}
+    >
+      <div
+        style={{
+          background: "#141414",
+          borderRadius: "16px 16px 0 0",
+          padding: 20,
+          width: "100%",
+          maxWidth: 500
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            color: "#555",
+            letterSpacing: 2,
+            marginBottom: 14
+          }}
+        >
+          {editorial
+            ? "PREVIEW ENCUESTA EDITORIAL · @CLINK_MX"
+            : "PREVIEW ENCUESTA PATROCINADA · @CLINK_MX"}
         </div>
 
-        <div style={{ background: "#13221f", border: "1px solid #245447", borderRadius: 12, overflow: "hidden", marginBottom: 16 }}>
+        <div
+          style={{
+            background: cardBackground,
+            border: `1px solid ${cardBorder}`,
+            borderRadius: 12,
+            overflow: "hidden",
+            marginBottom: 16
+          }}
+        >
           <div style={{ padding: 16 }}>
-            <div style={{ fontSize: 14, color: "#e8e8e8", whiteSpace: "pre-line", lineHeight: 1.7, fontFamily: "system-ui", marginBottom: 14 }}>
-              {introText}
-            </div>
+            {introText && (
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "#e8e8e8",
+                  whiteSpace: "pre-line",
+                  lineHeight: 1.7,
+                  fontFamily: "system-ui",
+                  marginBottom: 14
+                }}
+              >
+                {introText}
+              </div>
+            )}
 
-            <div style={{ background: "#0f1715", border: "1px solid #1e3b35", borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 13, color: "#d8f7ee", fontWeight: 700, marginBottom: 10 }}>
+            <div
+              style={{
+                background: pollBackground,
+                border: `1px solid ${pollBorder}`,
+                borderRadius: 10,
+                padding: 14
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 13,
+                  color: editorial ? "#ffe5a3" : "#d8f7ee",
+                  fontWeight: 700,
+                  marginBottom: 10
+                }}
+              >
                 {post.pollQuestion}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8
+                }}
+              >
                 {pollOptions.map((option, idx) => (
                   <div
                     key={idx}
                     style={{
                       padding: "10px 12px",
                       borderRadius: 8,
-                      border: "1px solid #245447",
-                      color: "#b9e9db",
+                      border: `1px solid ${cardBorder}`,
+                      color: optionColor,
                       fontSize: 13,
-                      background: "#13221f"
+                      background: cardBackground
                     }}
                   >
                     {option}
@@ -2931,7 +3411,17 @@ function PollPreviewModal({ post, onSend, onClose, sending, sent }) {
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onClose}
-            style={{ flex: 1, background: "#222", color: "#aaa", border: "none", padding: 14, borderRadius: 8, fontSize: 13, cursor: "pointer", fontFamily: "monospace" }}
+            style={{
+              flex: 1,
+              background: "#222",
+              color: "#aaa",
+              border: "none",
+              padding: 14,
+              borderRadius: 8,
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "monospace"
+            }}
           >
             CANCELAR
           </button>
@@ -2939,9 +3429,27 @@ function PollPreviewModal({ post, onSend, onClose, sending, sent }) {
           <button
             onClick={onSend}
             disabled={sending || sent}
-            style={{ flex: 2, background: sent ? "#2ecc71" : "#7ee7c3", color: "#000", border: "none", padding: 14, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "monospace", opacity: sending ? 0.6 : 1 }}
+            style={{
+              flex: 2,
+              background: sent ? "#2ecc71" : accentColor,
+              color: "#000",
+              border: "none",
+              padding: 14,
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "monospace",
+              opacity: sending ? 0.6 : 1
+            }}
           >
-            {sent ? "✓ ENVIADO" : sending ? "ENVIANDO…" : "✈ PUBLICAR ENCUESTA"}
+            {sent
+              ? "✓ ENVIADO"
+              : sending
+                ? "ENVIANDO…"
+                : editorial
+                  ? "✈ PUBLICAR ENCUESTA EDITORIAL"
+                  : "✈ PUBLICAR ENCUESTA"}
           </button>
         </div>
       </div>
