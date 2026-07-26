@@ -1522,7 +1522,7 @@ const handleSendPoll = async () => {
           chat_id: tgConfig.chatId,
           question: pollPreview.pollQuestion,
           options,
-          is_anonymous: false,
+          is_anonymous: true,
           allows_multiple_answers: false
         })
       }
@@ -1614,7 +1614,7 @@ const handleSendEditorialPoll = async () => {
           chat_id: tgConfig.chatId,
           question: editorialPollPreview.pollQuestion,
           options,
-          is_anonymous: false,
+          is_anonymous: true,
           allows_multiple_answers: false
         })
       }
