@@ -1014,7 +1014,6 @@ const [showSponsoredForm, setShowSponsoredForm] = useState(false);
 const [showCodeForm, setShowCodeForm] = useState(false);
 const [showPollForm, setShowPollForm] = useState(false);
 const [showEditorialPollForm, setShowEditorialPollForm] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
 const [showInsights, setShowInsights] = useState(false);
 
 const [codePreview, setCodePreview] = useState(null);
