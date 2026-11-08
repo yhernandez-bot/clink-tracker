@@ -1014,6 +1014,8 @@ const [showSponsoredForm, setShowSponsoredForm] = useState(false);
 const [showCodeForm, setShowCodeForm] = useState(false);
 const [showPollForm, setShowPollForm] = useState(false);
 const [showEditorialPollForm, setShowEditorialPollForm] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+const [showInsights, setShowInsights] = useState(false);
 
 const [codePreview, setCodePreview] = useState(null);
 const [sponsoredPreview, setSponsoredPreview] = useState(null);
@@ -2039,7 +2041,41 @@ const handleSendGwp = async () => {
       </div>
 
      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-  <button
+<button
+  onClick={() => setShowInsights(v => !v)}
+  style={{
+    background: showInsights ? "#302508" : "#15130a",
+    color: "#f0c15a",
+    border: "1px solid #5a4310",
+    padding: "12px 14px",
+    borderRadius: 10,
+    fontFamily: "monospace",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+    textAlign: "left"
+  }}
+>
+  {showInsights ? "📊 CERRAR CLINK INSIGHTS" : "📊 ABRIR CLINK INSIGHTS"}
+</button>
+
+{showInsights && (
+  <div style={{
+    background: "#111",
+    border: "1px solid #302508",
+    borderRadius: 10,
+    padding: 14,
+    color: "#aaa",
+    fontSize: 12
+  }}>
+    <div style={{ color: "#f0c15a", fontWeight: 700, marginBottom: 6 }}>
+      CLINK INSIGHTS
+    </div>
+    Panel privado de estadísticas.
+    Próximamente: clics, rankings y rendimiento editorial.
+  </div>
+)}
+       <button
     onClick={() => setShowRetiringOnly(v => !v)}
     style={{
       background: showRetiringOnly ? "#3a2a0a" : "#111",
