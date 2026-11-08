@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 const TG_KEY = "clink-tg-config";
 const ANTHROPIC_WORKER = "https://clink-anthropic.yayitou.workers.dev";
 const WORKER_URL = "https://clink-telegram.yayitou.workers.dev";
+const INSIGHTS_URL = "https://clink-insights.yayitou.workers.dev/insights";
 const SUPABASE_URL = "https://dnphngdkphylfvgsxmui.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRucGhuZ2RrcGh5bGZ2Z3N4bXVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMjcwNzIsImV4cCI6MjA4OTgwMzA3Mn0.Qyqj-ImZ6pg_G4kieMQdRaZBmZhODCamFhsQS6xKp1w";
 
@@ -1015,6 +1016,10 @@ const [showCodeForm, setShowCodeForm] = useState(false);
 const [showPollForm, setShowPollForm] = useState(false);
 const [showEditorialPollForm, setShowEditorialPollForm] = useState(false);
 const [showInsights, setShowInsights] = useState(false);
+  const [insightsToken, setInsightsToken] = useState("");
+const [insightsData, setInsightsData] = useState(null);
+const [insightsLoading, setInsightsLoading] = useState(false);
+const [insightsError, setInsightsError] = useState("");
 
 const [codePreview, setCodePreview] = useState(null);
 const [sponsoredPreview, setSponsoredPreview] = useState(null);
@@ -1130,6 +1135,40 @@ const [newGwp, setNewGwp] = useState({
       .catch(() => setDbLoading(false));
   }, []);
 
+  const loadInsights = async () => {
+  if (!insightsToken.trim()) {
+    setInsightsError("Introduce tu clave de acceso.");
+    return;
+  }
+
+  setInsightsLoading(true);
+  setInsightsError("");
+
+  try {
+    const response = await fetch(INSIGHTS_URL, {
+      headers: {
+        Authorization: `Bearer ${insightsToken.trim()}`
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401
+          ? "La clave de acceso no es correcta."
+          : `No se pudieron consultar las estadísticas (${response.status}).`
+      );
+    }
+
+    const data = await response.json();
+    setInsightsData(data);
+  } catch (error) {
+    setInsightsData(null);
+    setInsightsError(error.message);
+  } finally {
+    setInsightsLoading(false);
+  }
+};
   const saveTgConfig = (c) => {
     setTgConfig(c);
     localStorage.setItem(TG_KEY, JSON.stringify(c));
@@ -2058,22 +2097,172 @@ const handleSendGwp = async () => {
   {showInsights ? "📊 CERRAR CLINK INSIGHTS" : "📊 ABRIR CLINK INSIGHTS"}
 </button>
 
+
 {showInsights && (
   <div style={{
     background: "#111",
     border: "1px solid #302508",
     borderRadius: 10,
-    padding: 14,
-    color: "#aaa",
-    fontSize: 12
+    padding: 16,
+    color: "#ddd",
+    fontSize: 12,
+    fontFamily: "monospace"
   }}>
-    <div style={{ color: "#f0c15a", fontWeight: 700, marginBottom: 6 }}>
+    <div style={{
+      color: "#f0c15a",
+      fontWeight: 700,
+      letterSpacing: 1,
+      marginBottom: 14
+    }}>
       CLINK INSIGHTS
     </div>
-    Panel privado de estadísticas.
-    Próximamente: clics, rankings y rendimiento editorial.
+
+    {!insightsData ? (
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ color: "#888", lineHeight: 1.6 }}>
+          Introduce tu clave privada para consultar las estadísticas.
+        </div>
+
+        <input
+          type="password"
+          value={insightsToken}
+          onChange={e => setInsightsToken(e.target.value)}
+          placeholder="Clave de acceso"
+          autoComplete="off"
+          style={{
+            background: "#080808",
+            border: "1px solid #333",
+            color: "#fff",
+            padding: 12,
+            borderRadius: 8,
+            fontFamily: "monospace",
+            width: "100%",
+            boxSizing: "border-box"
+          }}
+        />
+
+        <button
+          onClick={loadInsights}
+          disabled={insightsLoading}
+          style={{
+            background: "#f0c15a",
+            color: "#111",
+            border: "none",
+            borderRadius: 8,
+            padding: 12,
+            cursor: "pointer",
+            fontWeight: 700,
+            fontFamily: "monospace"
+          }}
+        >
+          {insightsLoading ? "CARGANDO..." : "CONSULTAR ESTADÍSTICAS"}
+        </button>
+
+        {insightsError && (
+          <div style={{ color: "#ff7777" }}>
+            {insightsError}
+          </div>
+        )}
+      </div>
+    ) : (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 8
+        }}>
+          {[
+            ["SETS REGISTRADOS", insightsData.totals.sets],
+            ["CLICS TOTALES", insightsData.totals.clicks],
+            ["SETS CON CLICS", insightsData.totals.setsWithClicks],
+            ["DEALS DESTACADOS", insightsData.topRegisteredDeals.length]
+          ].map(([label, value]) => (
+            <div key={label} style={{
+              background: "#191919",
+              border: "1px solid #292929",
+              padding: 12,
+              borderRadius: 8
+            }}>
+              <div style={{ color: "#888", fontSize: 10, marginBottom: 6 }}>
+                {label}
+              </div>
+              <div style={{
+                color: "#f0c15a",
+                fontSize: 24,
+                fontWeight: 700
+              }}>
+                {Number(value).toLocaleString("es-MX")}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div style={{ color: "#f0c15a", marginBottom: 10 }}>
+            TOP 5 SETS POR CLICS
+          </div>
+
+          {insightsData.topSets.slice(0, 5).map((s, i) => (
+            <div key={s.id} style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "10px 0",
+              borderBottom: "1px solid #252525"
+            }}>
+              <span>{i + 1}. {s.name}</span>
+              <strong style={{ color: "#f0c15a", whiteSpace: "nowrap" }}>
+                {s.clicks}
+              </strong>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div style={{ color: "#f0c15a", marginBottom: 10 }}>
+            CLICS POR FORMATO
+          </div>
+
+          {Object.entries(insightsData.clicksByType).map(([type, count]) => (
+            <div key={type} style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "7px 0"
+            }}>
+              <span>{type}</span>
+              <strong>{count}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ color: "#777", fontSize: 10, lineHeight: 1.6 }}>
+          Estadísticas acumuladas. Los clics no representan
+          usuarios únicos ni ventas confirmadas.
+        </div>
+
+        <button
+          onClick={() => {
+            setInsightsData(null);
+            setInsightsToken("");
+            setInsightsError("");
+          }}
+          style={{
+            background: "#222",
+            color: "#aaa",
+            border: "1px solid #333",
+            borderRadius: 8,
+            padding: 10,
+            cursor: "pointer",
+            fontFamily: "monospace"
+          }}
+        >
+          CERRAR SESIÓN
+        </button>
+      </div>
+    )}
   </div>
 )}
+
        <button
     onClick={() => setShowRetiringOnly(v => !v)}
     style={{
