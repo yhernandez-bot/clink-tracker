@@ -239,7 +239,7 @@ function isAlert(set, d) {
   const hasAvg = Number.isFinite(avg90) && avg90 > 0;
 
   if (hasAvg || hasMin) {
-    const isNewLow = hasMin && price < previousMin;
+    const isNewLow = hasMin && price <= previousMin;
     const isBelowAvg = hasAvg && price < avg90 - 1;
 
     return isNewLow || isBelowAvg;
@@ -338,11 +338,11 @@ function buildCaption(set, d) {
     : Number(set.min90);
 
   const isNewLow =
-    !useExternal &&
-    Number.isFinite(previousMin) &&
-    previousMin > 0 &&
-    price > 0 &&
-    price < previousMin;
+  !useExternal &&
+  Number.isFinite(previousMin) &&
+  previousMin > 0 &&
+  price > 0 &&
+  price <= previousMin;
 
   const isCaidaFuerte =
     diffVsAvg != null &&
