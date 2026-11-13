@@ -121,12 +121,48 @@ async function sbUpdateSet(set) {
   });
 }
 
-async function sbUpdatePriceData(id, priceData) {
-  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, {
-    method: "PATCH", headers: sbHeaders,
-    body: JSON.stringify({ price_data: priceData })
-  });
+
+async function sbUpdatePriceData(id, priceData, currentMin = null) {
+  const { minBeforeCheck, ...priceDataToSave } = priceData;
+
+const payload = {
+  price_data: priceDataToSave
+};
+
+  const newPrice = Number(priceData?.price);
+  const previousMin = Number(currentMin);
+
+  const validPrice =
+    priceData?.found === true &&
+    Number.isFinite(newPrice) &&
+    newPrice > 0;
+
+  const validMin =
+    currentMin !== null &&
+    currentMin !== "" &&
+    Number.isFinite(previousMin) &&
+    previousMin > 0;
+
+  if (validPrice && (!validMin || newPrice < previousMin)) {
+    payload.min90 = newPrice;
+  }
+
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`,
+    {
+      method: "PATCH",
+      headers: sbHeaders,
+      body: JSON.stringify(payload)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("No se pudo guardar el precio en Supabase");
+  }
+
+  return payload.min90 ?? null;
 }
+
 
 async function sbUpdateLastSent(id) {
   await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${id}`, {
@@ -176,20 +212,35 @@ function getDiscount(d) {
   return null;
 }
 
+
 function isAlert(set, d) {
   if (!d?.found || !d.price) return false;
-  const price = d.price;
-  if (set.avg90 || set.min90) {
-    if (set.avg90 && set.min90 && price === set.avg90 && price === set.min90) return false;
-    const isNewLow = set.min90 ? price <= set.min90 : false;
-    const isBelowAvg = set.avg90 ? price < (set.avg90 - 1) : false;
+
+  const price = Number(d.price);
+  const avg90 = Number(set.avg90);
+
+  const previousMin = Object.prototype.hasOwnProperty.call(d, "minBeforeCheck")
+    ? Number(d.minBeforeCheck)
+    : Number(set.min90);
+
+  const hasMin = Number.isFinite(previousMin) && previousMin > 0;
+  const hasAvg = Number.isFinite(avg90) && avg90 > 0;
+
+  if (hasAvg || hasMin) {
+    const isNewLow = hasMin && price < previousMin;
+    const isBelowAvg = hasAvg && price < avg90 - 1;
+
     return isNewLow || isBelowAvg;
   }
+
   const disc = getDiscount(d);
   const originalPrice = set.originalPrice || d.originalPrice;
+
   if (originalPrice && price >= originalPrice) return false;
+
   return disc != null && disc >= set.minDiscount;
 }
+
 
 function evaluateExternalDeal(set, d) {
   const externalPrice = Number(set.externalPrice);
@@ -244,14 +295,13 @@ function evaluateExternalDeal(set, d) {
   };
 }
 
+
 function buildCaption(set, d) {
   const externalEval = evaluateExternalDeal(set, d);
   const useExternal = externalEval?.approved && set.externalStore && set.externalPrice;
 
-  const price = useExternal ? Number(set.externalPrice) : d.price;
-  const pct = useExternal
-    ? null
-    : getDiscount(d);
+  const price = useExternal ? Number(set.externalPrice) : Number(d?.price);
+  const pct = useExternal ? null : getDiscount(d);
 
   const url = useExternal
     ? (set.externalUrl || "")
@@ -270,9 +320,24 @@ function buildCaption(set, d) {
     ? Math.round(((set.avg90 - price) / set.avg90) * 100)
     : null;
 
-  const isNewLow = set.min90 && price ? price <= set.min90 : false;
-  const isCaidaFuerte = diffVsAvg != null && diffVsAvg >= (set.minDiscount || 3);
-  const isBuenPrecio = set.avg90 && price < (set.avg90 - 1);
+  // Comparar con el mínimo anterior a la consulta.
+  const previousMin = d && Object.prototype.hasOwnProperty.call(d, "minBeforeCheck")
+    ? Number(d.minBeforeCheck)
+    : Number(set.min90);
+
+  const isNewLow =
+    !useExternal &&
+    Number.isFinite(previousMin) &&
+    previousMin > 0 &&
+    price > 0 &&
+    price < previousMin;
+
+  const isCaidaFuerte =
+    diffVsAvg != null &&
+    diffVsAvg >= (set.minDiscount || 3);
+
+  const isBuenPrecio =
+    set.avg90 && price < (set.avg90 - 1);
 
   let tag = "";
 
@@ -281,31 +346,43 @@ function buildCaption(set, d) {
     else if (externalEval.status === "strong") tag = "💥 CAÍDA FUERTE VS AMAZON";
     else if (externalEval.status === "good") tag = "✅ MEJOR QUE AMAZON";
   } else {
-    if (isNewLow) tag = "🔥 NUEVO MÍNIMO 90D";
+    if (isNewLow) tag = "🔥 NUEVO MÍNIMO";
     else if (isCaidaFuerte) tag = "💥 CAÍDA FUERTE";
     else if (isBuenPrecio) tag = "✅ BUEN PRECIO";
   }
 
-const shareCta =
-  tag === "🔥 NUEVO MÍNIMO 90D"
-    ? "Si conoces a alguien que estaba esperando este set, se lo puedes pasar."
-    : null;
+  const shareCta =
+    tag === "🔥 NUEVO MÍNIMO"
+      ? "Si conoces a alguien que estaba esperando este set, se lo puedes pasar."
+      : null;
 
-const extras = [
-  tag || null,
-  set.avg90 ? `📊 Prom 90d Amazon: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}` : null,
-  set.min90 ? `📉 Mín Amazon: ${fmtPrice(set.min90)}` : null,
-  useExternal && d?.price ? `🛒 Amazon hoy: ${fmtPrice(d.price)}` : null,
-  set.notes ? `🧠 ${set.notes}` : null,
-  useExternal && set.externalNote ? `🏷️ ${set.externalNote}` : null,
-  shareCta
-].filter(Boolean);
+  const extras = [
+    tag || null,
+    set.avg90
+      ? `📊 Prom 90d Amazon: ${fmtPrice(set.avg90)}${diffVsAvg != null ? ` (-${diffVsAvg}%)` : ""}`
+      : null,
+    set.min90
+      ? `📉 Mín Amazon registrado: ${fmtPrice(set.min90)}`
+      : null,
+    useExternal && d?.price
+      ? `🛒 Amazon hoy: ${fmtPrice(d.price)}`
+      : null,
+    set.notes ? `🧠 ${set.notes}` : null,
+    useExternal && set.externalNote
+      ? `🏷️ ${set.externalNote}`
+      : null,
+    shareCta
+  ].filter(Boolean);
 
   return {
-    text: [`🧱 ${set.name}`, line2, ...extras].filter(Boolean).join("\n").slice(0, 900),
+    text: [`🧱 ${set.name}`, line2, ...extras]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 900),
     url
   };
 }
+
 
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
@@ -1226,10 +1303,25 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
         parsed.url = canonicalUrl(set.asin);
       }
 
-      const pd = { ...parsed, checkedAt: new Date().toISOString() };
-      setPriceData(prev => ({ ...prev, [set.id]: pd }));
-      await sbUpdatePriceData(set.id, pd);
-      setLastCheck(new Date().toLocaleTimeString("es-MX"));
+      
+const pd = {
+  ...parsed,
+  checkedAt: new Date().toISOString(),
+  minBeforeCheck: set.min90 ?? null
+};
+
+const newMin = await sbUpdatePriceData(set.id, pd, set.min90);
+
+setPriceData(prev => ({ ...prev, [set.id]: pd }));
+
+if (newMin !== null) {
+  setSets(prev => prev.map(s =>
+    s.id === set.id ? { ...s, min90: newMin } : s
+  ));
+}
+
+setLastCheck(new Date().toLocaleTimeString("es-MX"));
+
     } catch (err) {
       const pd = { error: true, errorMsg: err.message, checkedAt: new Date().toISOString() };
       setPriceData(prev => ({ ...prev, [set.id]: pd }));
@@ -1347,10 +1439,40 @@ discount es el porcentaje entero de descuento. Si no hay precio: found=false, pr
     await sbDeleteSet(id);
   };
 
-  const setManualPrice = async (id, priceObj) => {
-    setPriceData(prev => ({ ...prev, [id]: priceObj }));
-    await sbUpdatePriceData(id, priceObj);
+ 
+const setManualPrice = async (id, priceObj) => {
+  const currentSet = sets.find(s => s.id === id);
+
+  if (!currentSet) {
+    alert("No se encontró el set.");
+    return;
+  }
+
+  const pd = {
+    ...priceObj,
+    minBeforeCheck: currentSet.min90 ?? null
   };
+
+  try {
+    const newMin = await sbUpdatePriceData(
+      id,
+      pd,
+      currentSet.min90
+    );
+
+    setPriceData(prev => ({ ...prev, [id]: pd }));
+
+    if (newMin !== null) {
+      setSets(prev => prev.map(s =>
+        s.id === id ? { ...s, min90: newMin } : s
+      ));
+    }
+  } catch (error) {
+    console.error("Error guardando precio manual:", error);
+    alert("No se pudo guardar el precio en Supabase.");
+  }
+};
+
 
   const isOnCooldown = (set) => {
     if (!set.lastSent) return false;
