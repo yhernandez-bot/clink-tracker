@@ -157,10 +157,23 @@ const payload = {
   );
 
   if (!response.ok) {
-    throw new Error("No se pudo guardar el precio en Supabase");
-  }
+  const errorText = await response.text();
+  throw new Error(`Error Supabase: ${response.status} ${errorText}`);
+}
 
-  return payload.min90 ?? null;
+const savedRows = await response.json();
+const savedSet = savedRows[0];
+
+if (!savedSet) {
+  throw new Error("Supabase no devolvió el registro actualizado.");
+}
+
+if (payload.min90 !== undefined &&
+    Number(savedSet.min90) !== Number(payload.min90)) {
+  throw new Error("Supabase no guardó el nuevo precio mínimo.");
+}
+
+return payload.min90 ?? null;
 }
 
 
