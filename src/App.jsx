@@ -98,7 +98,6 @@ async function sbUpdateSet(set) {
       img: set.img,
       min_discount: set.minDiscount,
       avg90: set.avg90,
-      min90: set.min90,
       notes: set.notes,
       original_price: set.originalPrice || null,
 
@@ -1438,9 +1437,19 @@ setLastCheck(new Date().toLocaleTimeString("es-MX"));
   };
 
   const editSet = async (updated) => {
-    setSets(prev => prev.map(s => s.id === updated.id ? updated : s));
+  try {
     await sbUpdateSet(updated);
-  };
+
+    setSets(prev => prev.map(s =>
+      s.id === updated.id
+        ? { ...updated, min90: s.min90 }
+        : s
+    ));
+  } catch (error) {
+    console.error("Error actualizando set:", error);
+    alert("No se pudieron guardar los cambios del set.");
+  }
+};
 
   const removeSet = async (id) => {
     setSets(prev => prev.filter(s => s.id !== id));
