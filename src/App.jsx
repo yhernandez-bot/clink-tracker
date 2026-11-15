@@ -387,13 +387,16 @@ function buildCaption(set, d) {
   ].filter(Boolean);
 
   return {
-    text: [`🧱 ${set.name}`, line2, ...extras]
-      .filter(Boolean)
-      .join("\n")
-      .slice(0, 900),
-    url
-  };
-}
+  text: [
+    `🧱 ${set.name}${set.sku ? ` · LEGO ${set.sku}` : ""}`,
+    line2,
+    ...extras
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 900),
+  url
+};
 
 
 async function sendToTelegram(botToken, chatId, set, d) {
