@@ -397,7 +397,7 @@ function buildCaption(set, d) {
     .slice(0, 900),
   url
 };
-
+}
 
 async function sendToTelegram(botToken, chatId, set, d) {
   const { text, url } = buildCaption(set, d);
