@@ -88,7 +88,7 @@ async function sbAddSet(set) {
 }
 
 async function sbUpdateSet(set) {
-  await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${set.id}`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/sets?id=eq.${set.id}`, {
     method: "PATCH",
     headers: sbHeaders,
     body: JSON.stringify({
@@ -96,7 +96,7 @@ async function sbUpdateSet(set) {
       sku: set.sku,
       asin: set.asin,
       img: set.img,
-            min_discount: set.minDiscount,
+      min_discount: set.minDiscount,
       avg90: set.avg90,
       min90: set.min90 === "" || set.min90 == null
         ? null
@@ -118,9 +118,14 @@ async function sbUpdateSet(set) {
       external_price: set.externalPrice ? parseFloat(set.externalPrice) : null,
       external_url: set.externalUrl || null,
       external_checked_at: set.externalCheckedAt || null,
-      external_note: set.externalNote || null
+           external_note: set.externalNote || null
     })
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Error de Supabase: ${response.status} - ${errorText}`);
+  }
 }
 
 
