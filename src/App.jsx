@@ -96,8 +96,11 @@ async function sbUpdateSet(set) {
       sku: set.sku,
       asin: set.asin,
       img: set.img,
-      min_discount: set.minDiscount,
+            min_discount: set.minDiscount,
       avg90: set.avg90,
+      min90: set.min90 === "" || set.min90 == null
+        ? null
+        : Number(set.min90),
       notes: set.notes,
       original_price: set.originalPrice || null,
 
@@ -1330,7 +1333,7 @@ const newMin = await sbUpdatePriceData(set.id, pd, set.min90);
 setPriceData(prev => ({ ...prev, [set.id]: pd }));
 
 if (newMin !== null) {
-  setSets(prev => prev.map(s =>
+  
     s.id === set.id ? { ...s, min90: newMin } : s
   ));
 }
@@ -1443,9 +1446,14 @@ setLastCheck(new Date().toLocaleTimeString("es-MX"));
   try {
     await sbUpdateSet(updated);
 
-    setSets(prev => prev.map(s =>
+      setSets(prev => prev.map(s =>
       s.id === updated.id
-        ? { ...updated, min90: s.min90 }
+        ? {
+            ...updated,
+            min90: updated.min90 === "" || updated.min90 == null
+              ? null
+              : Number(updated.min90)
+          }
         : s
     ));
   } catch (error) {
@@ -1488,7 +1496,7 @@ const setManualPrice = async (id, priceObj) => {
     setPriceData(prev => ({ ...prev, [id]: pd }));
 
     if (newMin !== null) {
-      setSets(prev => prev.map(s =>
+      
         s.id === id ? { ...s, min90: newMin } : s
       ));
     }
@@ -1516,7 +1524,7 @@ const setManualPrice = async (id, priceObj) => {
     try {
       await sendToTelegram(tgConfig.botToken, tgConfig.chatId, set, d);
       await sbUpdateLastSent(set.id);
-      setSets(prev => prev.map(s => s.id === set.id ? { ...s, lastSent: new Date().toISOString() } : s));
+       s.id === set.id ? { ...s, lastSent: new Date().toISOString() } : s));
       setTgStatus(s => ({ ...s, [set.id]: "sent" }));
       setSentIds(prev => new Set([...prev, set.id]));
       setTimeout(() => setTgStatus(s => {
