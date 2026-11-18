@@ -1502,7 +1502,7 @@ const setManualPrice = async (id, priceObj) => {
 
     if (newMin !== null) {
   setSets(prev => prev.map(s =>
-    s.id === set.id ? { ...s, min90: newMin } : s
+    s.id === id ? { ...s, min90: newMin } : s
   ));
 }
   } catch (error) {
