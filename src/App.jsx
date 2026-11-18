@@ -1338,7 +1338,7 @@ const newMin = await sbUpdatePriceData(set.id, pd, set.min90);
 setPriceData(prev => ({ ...prev, [set.id]: pd }));
 
 if (newMin !== null) {
-  
+  setSets(prev => prev.map(s =>
     s.id === set.id ? { ...s, min90: newMin } : s
   ));
 }
