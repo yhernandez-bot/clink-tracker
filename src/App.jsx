@@ -1501,10 +1501,10 @@ const setManualPrice = async (id, priceObj) => {
     setPriceData(prev => ({ ...prev, [id]: pd }));
 
     if (newMin !== null) {
-  setSets(prev => prev.map(s =>
-    s.id === id ? { ...s, min90: newMin } : s
-  ));
-}
+      setSets(prev => prev.map(s =>
+        s.id === id ? { ...s, min90: newMin } : s
+      ));
+    }
   } catch (error) {
     console.error("Error guardando precio manual:", error);
     alert("No se pudo guardar el precio en Supabase.");
