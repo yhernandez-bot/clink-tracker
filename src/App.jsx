@@ -1529,7 +1529,9 @@ const setManualPrice = async (id, priceObj) => {
     try {
       await sendToTelegram(tgConfig.botToken, tgConfig.chatId, set, d);
       await sbUpdateLastSent(set.id);
-       s.id === set.id ? { ...s, lastSent: new Date().toISOString() } : s));
+       setSets(prev => prev.map(s =>
+  s.id === set.id ? { ...s, lastSent: new Date().toISOString() } : s
+));
       setTgStatus(s => ({ ...s, [set.id]: "sent" }));
       setSentIds(prev => new Set([...prev, set.id]));
       setTimeout(() => setTgStatus(s => {
